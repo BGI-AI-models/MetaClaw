@@ -1,0 +1,99 @@
+# Clustering Pipeline Configuration
+# Edit this file to customize the clustering pipeline
+
+preprocessing:
+  input:
+    path: "Data/Raw/AMS_data_v6.csv"    # Input data file path
+    delimiter: ","              # CSV/TSV delimiter
+    index_col: "IID"             # Index column name (null to skip)
+    drop_cols: ["Target_AMS"]               # Columns to drop
+  features:
+    categorical: []             # List of categorical feature names
+  imputation_method: "mean"     # "mean", "median", "knn", "mice", or "none"
+  remove_zero_variance: true    # Remove features with zero variance
+  missing_threshold: 50.0       # % threshold for removing high-missing features
+  standardize: true             # Standardize numeric features
+  standardize_binary: false     # If true, binary columns are also standardized
+  output:
+    directory: "Data/Processed" # Output folder for preprocess results
+    format: "tsv"               # "csv", "tsv", or "parquet"
+    save: true                  # Whether to write preprocess outputs to disk
+    save_preprocess_artifact: true  # Save fitted preprocessing artifact for future predict transform
+    preprocess_artifact_name: "preprocess_artifact"  # Artifact filename prefix
+    save_config_snapshot: true  # Save preprocess_config_used.yaml in output directory
+  logging:
+    verbose: true               # Print preprocessing progress logs
+
+training:
+  input:
+    source: "preprocessed"      # Currently only "preprocessed" is supported
+    processed:
+      directory: "Data/Processed"  # Folder for processed files
+      format: "tsv"             # "csv", "tsv", or "parquet"
+      path: "Data/Processed/full_preprocessed.tsv"
+  index_col: "IID"             # Index column name (null to skip)
+  random_state: 123             # Random seed for reproducibility
+  already_standardized: true    # Set to false if data needs additional standardization
+  logging:
+    verbose: true               # Print training progress logs
+  operations: ["fit", "tune"]   # "fit" and/or "tune"
+  models: ["kmeans", "dbscan", "spectral"]  # Models to train
+  model_params:                 # Default parameters for each model
+    kmeans:
+      n_clusters: 8
+      init: "k-means++"
+      n_init: 10
+      max_iter: 300
+      tol: 0.0001
+      store_training_data: true
+    dbscan:
+      eps: 0.5
+      min_samples: 5
+      metric: "euclidean"
+      store_training_data: true
+    spectral:
+      n_clusters: 8
+      affinity: "rbf"
+      n_neighbors: 10
+      store_training_data: true
+  tune_params:                  # Hyperparameter tuning configuration
+    kmeans:
+      n_clusters_range: [2, 10]  # Range of cluster numbers to try
+      metric: "silhouette"      # "silhouette", "davies_bouldin", or "inertia"
+    dbscan:
+      eps_range: [0.1, 2.0]     # Range of eps values
+      min_samples_range: [2, 20]  # Range of min_samples values
+      metric: "silhouette"      # "silhouette" or "davies_bouldin"
+    spectral:
+      n_clusters_range: [2, 10]  # Range of cluster numbers
+      affinity_options: ["rbf", "nearest_neighbors"]  # Affinity metrics to try
+      n_neighbors_range: [5, 20]  # Range of n_neighbors (for nearest_neighbors)
+      metric: "silhouette"      # "silhouette" or "davies_bouldin"
+  output:
+    directory: "Clustering-result"  # Output directory for training results
+    save_cluster_visualization: true # Whether to save visualization
+    visualization_dpi: 300
+    save: true                    # Global write switch for training outputs
+    save_config_snapshot: true    # Save train_config_used.yaml in output directory
+
+apply:
+  model_path: "Clustering-result/kmeans_tuned.joblib"  # Path to trained model
+  input:
+    path: "Data/Raw/AMS_data_v6.csv"  # Input file for applying clustering
+    delimiter: ","               # CSV/TSV delimiter
+    index_col: "IID"             # Index column name (null to skip)
+    drop_cols: ["Target_AMS"]                # Columns to drop
+  preprocessing:
+    use_artifact: true           # If true, apply saved preprocessing artifact
+    artifact_path: null          # Optional artifact path (null = default)
+  output:
+    directory: "Clustering-result/apply"  # Output folder for apply results
+    format: "tsv"                # "csv", "tsv", or "parquet"
+    save: true                   # Whether to save results
+    save_config_snapshot: true   # Save apply_config_used.yaml in output directory
+  logging:
+    verbose: true                # Print apply progress logs
+    predict_proba: false         # Output probability if model supports it
+
+unit_test:
+  verbose: true                  # Enable verbose test output

@@ -1,0 +1,57 @@
+{# Supervised regression report. #}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{% block content %}
+<section class="section" id="overview">
+  <h2>1. Overview</h2>
+  <p class="section-lead">
+    Continuous-target regression — preprocessing, candidate models,
+    cross-validated error metrics and residual diagnostics.
+  </p>
+  {{ ui.kpi_grid(kpis) }}
+</section>
+
+<section class="section" id="data">
+  <h2>2. Data &amp; preprocessing</h2>
+  {% if data.summary_table %}{{ ui.table(data.summary_table.rows, data.summary_table.cols) }}{% endif %}
+  {% if data.target_dist  %}{{ ui.figure('Target distribution', data.target_dist,
+        caption='Empirical distribution of the regression target. Skewness suggests whether log-transform is appropriate.') }}{% endif %}
+</section>
+
+<section class="section" id="models">
+  <h2>3. Model comparison</h2>
+  {% if models.metrics_table %}{{ ui.table(models.metrics_table.rows, models.metrics_table.cols,
+        caption='R², RMSE and MAE across cross-validation folds.') }}{% endif %}
+  <div class="figure-grid">
+    {% if models.actual_pred %}{{ ui.figure('Actual vs. predicted', models.actual_pred,
+          caption='Each panel a model; the diagonal shows perfect prediction.') }}{% endif %}
+    {% if models.residual_dist %}{{ ui.figure('Residual distribution', models.residual_dist) }}{% endif %}
+  </div>
+</section>
+
+<section class="section" id="best-model">
+  <h2>4. Best model — diagnostics</h2>
+  {% if best.residual_vs_fitted %}{{ ui.figure('Residuals vs. fitted', best.residual_vs_fitted,
+        caption='Patterns indicate non-linearity or heteroscedasticity to be addressed in preprocessing.') }}{% endif %}
+  {% if best.qq %}{{ ui.figure('Q–Q plot', best.qq, caption='Residual normality.') }}{% endif %}
+  {% if best.importance %}{{ ui.figure('Feature contributions', best.importance) }}{% endif %}
+  {% if best.importance_table %}{{ ui.table(best.importance_table.rows, best.importance_table.cols) }}{% endif %}
+</section>
+
+{% if predictions %}
+<section class="section" id="predictions">
+  <h2>5. External predictions</h2>
+  {% if predictions.summary %}{{ ui.kpi_grid(predictions.summary) }}{% endif %}
+  {% if predictions.table   %}{{ ui.table(predictions.table.rows, predictions.table.cols) }}{% endif %}
+</section>
+{% endif %}
+
+<section class="section" id="reproducibility">
+  <h2>{{ '6' if predictions else '5' }}. Reproducibility</h2>
+  {% if reproducibility.tools_table %}{{ ui.table(reproducibility.tools_table.rows, reproducibility.tools_table.cols) }}{% endif %}
+</section>
+{% endblock %}
+
+{% block methods %}{{ ui.methods(methods_table) }}{% endblock %}
+{% block references %}{{ ui.references(refs) }}{% endblock %}

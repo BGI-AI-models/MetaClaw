@@ -1,0 +1,101 @@
+# Regression pipeline config (ref: AMS_data_v6.csv and classification_config.yaml)
+# Adjust paths, target column and model params as needed
+
+preprocessing:
+  # ---------- Input ----------
+  input:
+    path: "Data/Raw/AMS_data_v6.csv"   # Raw data path (can match classification when using same data)
+    delimiter: ","                     # Column delimiter: "," for CSV, "\t" for TSV
+    index_col: "IID"                   # Column to use as row index; use null if none
+    drop_cols: []                      # Columns to drop before preprocessing (e.g. "LLS"); leave empty for AMS_data_v6
+  # ---------- Target ----------
+  target:
+    column: "BMI"                     # Regression target column (must be numeric); currently BMI
+  # ---------- Features ----------
+  features:
+    categorical: []                   # Categorical columns for one-hot encoding; leave empty if all numeric
+  # ---------- Imputation & standardization (used by Regression_pipeline) ----------
+  imputation_method: "mice"            # Imputation: mean / median / knn / mice / none
+  # ---------- Split ----------
+  split:
+    method: "train_test"                   # train_test (single split) / kfold (K-fold) / full (no split)
+    train_test_ratio: 0.8             # Used only when method=train_test; fraction for train set
+    n_splits: 10                      # Used only when method=kfold; number of folds
+    random_state: 42                  # Random seed for reproducible splits
+  # ---------- Preprocessing output ----------
+  output:
+    directory: "Data/Processed"       # Directory for preprocessed outputs (can share with classification)
+    format: "tsv"                     # Output format: tsv / csv / parquet
+    save: true                        # Whether to write preprocessed train/test to disk
+    save_row_id: true                 # Whether to keep __row_id__ in output (for row alignment)
+    save_preprocess_artifact: true    # Should be true: predict uses same standardization/imputation or scale will be wrong
+    preprocess_artifact_name: "preprocess_artifact"  # Artifact file prefix (no extension)
+    save_config_snapshot: true        # Whether to save config snapshot in output directory
+  logging:
+    verbose: true                     # Print preprocessing logs
+
+training:
+  # ---------- Training data source ----------
+  input:
+    source: "preprocessed"            # preprocessed (read from Phase 1) / raw (read raw file)
+    raw:                              # Used only when source=raw
+      path: "Data/Raw/AMS_data_v6.csv"  # Raw data path
+      delimiter: ","                    # Column delimiter
+      index_col: "IID"                  # Row index column
+      drop_cols: []                     # Columns to drop before training
+      target_column: "BMI"             # Target column in raw data; must match preprocessing.target.column
+    processed:                        # Used only when source=preprocessed
+      mode: "single_split"                # single_split (one train/test pair) / full (single file) / outer_cv (folds)
+      directory: "Data/Processed"     # Directory containing preprocessed files
+      format: "tsv"                   # Preprocessed file format; must match preprocessing.output.format
+      path: null                      # Optional: single file path (for mode=full or custom)
+  random_state: 123                   # Random seed for regression models (e.g. rf, ridge)
+  logging:
+    verbose: true                     # Print training logs
+  # ---------- Operations & models ----------
+  operations: ["cross_validate", "fit"]  # cross_validate (tune params) / fit (fit and save model)
+  models: ["ridge", "rf"]             # Model short names; must exist in SimpleRegressor registry
+  model_params: {}                    # Used by fit only: fixed params per model; defaults if omitted
+  param_grid:                         # Used by cross_validate only: grid/list per model; single values as lists
+    ridge:
+      alpha: [0.1, 1.0, 10.0]        # Ridge regularization
+    rf:
+      n_estimators: [200, 500]       # Number of trees
+      max_depth: [null, 10, 20]      # Tree depth; null = no limit
+  # ---------- Cross-validation & scoring ----------
+  cv: 5                               # Inner CV folds for cross_validate
+  scoring:                            # Metrics: sklearn name or dict (alias -> metric)
+    r2: "r2"
+    rmse: "neg_root_mean_squared_error"
+    mae: "neg_mean_absolute_error"
+  n_jobs: -1                          # Parallel jobs; -1 = use all cores
+  rename_single_score: true           # Rename test_score to test_<metric> when single metric
+  best_model:                         # Rule to pick "best" model from cross_validate
+    metric: "test_r2_mean"            # Column to rank by (e.g. test_<alias>_mean)
+    mode: "max"                       # max = higher is better; min = lower is better (e.g. rmse)
+  fit_best_from_cv: true              # When fitting: use best params from cross_validate (else model_params)
+  output:
+    cross_validate_dir: "Regression-result/cross_validate"  # CV results (fold/summary/outer) output dir
+    model_dir: "Regression-result/model"                     # Directory for saved .joblib models
+    format: "tsv"                     # Table format for CV outputs (does not affect .joblib)
+    save: true                        # Whether to write outputs and models
+    save_config_snapshot: true        # Save train config snapshot in output directory
+
+predict:
+  # Path to .joblib saved by train fit; not created when using outer_cv with cross_validate only
+  model_path: "Regression-result/model/ridge.joblib"
+  input:
+    path: "Data/Raw/AMS_Prediction_test_data.tsv"     # Path to data to predict
+    delimiter: "\t"                   # Delimiter: "\t" for TSV, "," for CSV
+    index_col: "IID"                  # Row index column; match training for alignment
+    drop_cols: ["BMI"]                 # Drop target column before predict to avoid leakage; features: Age, is_female, height, weight
+  preprocessing:
+    use_artifact: true                # Should be true: apply same standardization/imputation as training or predictions will be wrong
+    artifact_path: null              # null = load preprocess_artifact.joblib from preprocessing.output.directory
+  output:
+    directory: "Regression-result/prediction"  # Prediction output directory
+    format: "tsv"                     # Prediction table format (e.g. predictions.tsv)
+    save: true                        # Whether to write predictions
+    save_config_snapshot: true        # Save config snapshot used for this predict run
+  logging:
+    verbose: true                     # Print prediction logs

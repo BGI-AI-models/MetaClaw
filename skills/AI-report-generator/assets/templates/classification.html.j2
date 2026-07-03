@@ -1,0 +1,69 @@
+{# Supervised classification report. #}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{% block content %}
+<section class="section" id="overview">
+  <h2>1. Overview</h2>
+  <p class="section-lead">
+    Supervised classification — preprocessing, model selection, cross-validated
+    performance and (optionally) hold-out predictions.
+  </p>
+  {{ ui.kpi_grid(kpis) }}
+  {% if class_balance_warning %}{{ ui.callout('Class balance', class_balance_warning, 'warning') }}{% endif %}
+</section>
+
+<section class="section" id="data">
+  <h2>2. Data &amp; preprocessing</h2>
+  {% if data.summary_table %}{{ ui.table(data.summary_table.rows, data.summary_table.cols,
+        caption='Feature inventory after preprocessing — counts and missingness.') }}{% endif %}
+  {% if data.target_dist %}{{ ui.figure('Target class distribution', data.target_dist) }}{% endif %}
+</section>
+
+<section class="section" id="models">
+  <h2>3. Model comparison</h2>
+  <p class="section-lead">
+    Candidate models tuned by cross-validation. Best model selected by
+    <code>{{ scoring or 'roc_auc' }}</code>.
+  </p>
+  {% if models.metrics_table %}{{ ui.table(models.metrics_table.rows, models.metrics_table.cols,
+        caption='Cross-validated metrics, mean ± 1 SD across folds.') }}{% endif %}
+  <div class="figure-grid">
+    {% if models.roc %}{{ ui.figure('ROC curves', models.roc) }}{% endif %}
+    {% if models.pr  %}{{ ui.figure('Precision-Recall curves', models.pr) }}{% endif %}
+  </div>
+</section>
+
+<section class="section" id="best-model">
+  <h2>4. Best model — diagnostics</h2>
+  {% if best.confusion %}{{ ui.figure('Confusion matrix', best.confusion,
+        caption='Held-out predictions for the best model.') }}{% endif %}
+  {% if best.calibration %}{{ ui.figure('Calibration', best.calibration,
+        caption='Predicted vs. observed positive rate by bin.') }}{% endif %}
+  {% if best.importance %}{{ ui.figure('Feature importance', best.importance,
+        caption='Permutation importance (or coefficient magnitude) for the best model.') }}{% endif %}
+  {% if best.importance_table %}{{ ui.table(best.importance_table.rows, best.importance_table.cols,
+        caption='Top contributing features.') }}{% endif %}
+</section>
+
+{% if predictions %}
+<section class="section" id="predictions">
+  <h2>5. External predictions</h2>
+  <p class="section-lead">
+    Best model applied to <code>predict.csv</code>. Probabilities reported when
+    the model supports them.
+  </p>
+  {% if predictions.summary %}{{ ui.kpi_grid(predictions.summary) }}{% endif %}
+  {% if predictions.table   %}{{ ui.table(predictions.table.rows, predictions.table.cols,
+        caption='First rows of the prediction file.') }}{% endif %}
+</section>
+{% endif %}
+
+<section class="section" id="reproducibility">
+  <h2>{{ '6' if predictions else '5' }}. Reproducibility</h2>
+  {% if reproducibility.tools_table %}{{ ui.table(reproducibility.tools_table.rows, reproducibility.tools_table.cols) }}{% endif %}
+</section>
+{% endblock %}
+
+{% block methods %}{{ ui.methods(methods_table) }}{% endblock %}
+{% block references %}{{ ui.references(refs) }}{% endblock %}

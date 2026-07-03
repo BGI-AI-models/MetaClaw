@@ -1,0 +1,21 @@
+Run	Sample_Name	Group	Drug_Group	Host	Instrument	LibraryLayout	Sample_Type
+SRR28410580	HC-19	HC	Healthy Control	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410591	HC-14	HC	Healthy Control	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410615	HC-5	HC	Healthy Control	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410622	HC-4	HC	Healthy Control	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410625	HC-11	HC	Healthy Control	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410634	HC-13	HC	Healthy Control	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410669	HC-10	HC	Healthy Control	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410668	HC-100	HC	Healthy Control	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410645	HC-118	HC	Healthy Control	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410571	MS-90	RRMS	Ocrevus	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410575	MS-80	RRMS	Ocrevus	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410584	MS-49	RRMS	Ocrevus	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410585	MS-48	RRMS	Ocrevus	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410572	MS-87	RRMS	Copaxone	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410590	MS-41	RRMS	Copaxone	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410574	MS-82	RRMS	None	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410582	MS-51	RRMS	None	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410576	MS-78	RRMS	Tecfidera	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410599	MS-26	RRMS	Tecfidera	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva
+SRR28410598	MS-28	RRMS	Avonex	Homo sapiens	DNBSEQ-G400	PAIRED	Saliva

@@ -1,0 +1,29 @@
+# ai-report-generator — Conda environment for HTML report rendering.
+#
+# This skill renders self-contained HTML reports (no CDN, no PDF). The
+# downstream container (openclaw/downstream:1.1.0) ships these deps already;
+# this file is the canonical source of truth and is also useful for local dev.
+#
+# INSTALL (host-side dev only):
+#   conda env create -f skills/AI-report-generator/assets/environment.yaml
+#   conda activate ai-report-generator
+
+name: ai-report-generator
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.11
+  - pandas>=2.0
+  - numpy>=1.24
+  - scipy>=1.11
+  - matplotlib>=3.7
+  - pillow>=10.0
+  - jinja2>=3.1
+  - pyyaml>=6.0
+  - plotly>=5.20
+  - kaleido>=0.2          # static PNG export from plotly figures
+  - markupsafe>=2.1
+  - pip

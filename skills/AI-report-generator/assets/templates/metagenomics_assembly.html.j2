@@ -1,0 +1,63 @@
+{# Assembly route — QC → assembly → gene prediction → functional annotation. #}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{% block content %}
+<section class="section" id="overview">
+  <h2>1. Overview</h2>
+  <p class="section-lead">
+    Reference-free assembly report — contigs, predicted genes and
+    functional/orthology annotations.
+  </p>
+  {{ ui.kpi_grid(kpis) }}
+</section>
+
+<section class="section" id="qc">
+  <h2>2. Read QC</h2>
+  {% if qc.table %}{{ ui.table(qc.table.rows, qc.table.cols) }}{% else %}{{ ui.not_run('QC') }}{% endif %}
+</section>
+
+<section class="section" id="assembly">
+  <h2>3. Assembly statistics</h2>
+  <p class="section-lead">
+    Contig length, N50 and total assembly size per sample
+    (<code>megahit</code> / <code>SPAdes</code>).
+  </p>
+  {% if assembly.kpis %}{{ ui.kpi_grid(assembly.kpis) }}{% endif %}
+  <div class="figure-grid">
+    {% if assembly.length_dist %}{{ ui.figure('Contig length distribution', assembly.length_dist) }}{% endif %}
+    {% if assembly.n50_plot   %}{{ ui.figure('N50 by sample', assembly.n50_plot) }}{% endif %}
+  </div>
+  {% if assembly.table %}{{ ui.table(assembly.table.rows, assembly.table.cols,
+        caption='Assembly statistics per sample.') }}{% endif %}
+</section>
+
+<section class="section" id="genes">
+  <h2>4. Gene prediction</h2>
+  <p class="section-lead">
+    Open reading frames called by <code>prodigal</code>; counts of complete vs.
+    partial ORFs reported per sample.
+  </p>
+  {% if genes.table %}{{ ui.table(genes.table.rows, genes.table.cols) }}{% else %}{{ ui.not_run('gene prediction') }}{% endif %}
+</section>
+
+<section class="section" id="annotation">
+  <h2>5. Functional annotation</h2>
+  <p class="section-lead">
+    Orthology and pathway annotations (<code>eggNOG-mapper</code>,
+    <code>KEGG</code>) summarised by category.
+  </p>
+  {% if annotation.cog %}{{ ui.figure('COG categories', annotation.cog) }}{% endif %}
+  {% if annotation.kegg %}{{ ui.figure('KEGG pathways', annotation.kegg) }}{% endif %}
+  {% if annotation.table %}{{ ui.table(annotation.table.rows, annotation.table.cols,
+        caption='Top annotated functions across the cohort.') }}{% endif %}
+</section>
+
+<section class="section" id="reproducibility">
+  <h2>6. Reproducibility</h2>
+  {% if reproducibility.tools_table %}{{ ui.table(reproducibility.tools_table.rows, reproducibility.tools_table.cols) }}{% endif %}
+</section>
+{% endblock %}
+
+{% block methods %}{{ ui.methods(methods_table) }}{% endblock %}
+{% block references %}{{ ui.references(refs) }}{% endblock %}

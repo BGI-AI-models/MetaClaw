@@ -1,0 +1,367 @@
+# registry/pipelines.yaml
+# =============================================================================
+#   BioLine pipeline registry — single source of truth for which pipelines
+#   exist, what they need, what they produce, and which Docker image runs them.
+# =============================================================================
+#
+#   HOW THE AGENT USES THIS FILE
+#   ----------------------------
+#     AGENTS.md §W1 (new analysis request):
+#       step 3 — match user goal to a pipeline by `description:`
+#       step 4 — show the user the `downstream.skills` catalog + ETA
+#       step 7 — `gateway.sh <pipeline> …` hands the name to orchestrator.sh
+#     HEARTBEAT.md (startup) — `docker image inspect` every distinct `image:`
+#
+#   EDIT POLICY
+#   -----------
+#   Chat sessions cannot edit this file (AGENTS.md §W4). All changes go
+#   through a git PR. Conventions:
+#     • `description:` — Chinese, one short paragraph, user-facing.
+#     • YAML comments — English, developer-facing notes (deps, gotchas, TODOs).
+#     • Add inline `# <Chinese gloss>` next to each skill so the catalog is
+#       self-documenting when the planner enumerates it.
+#
+# =============================================================================
+#   SCHEMA
+# =============================================================================
+#
+#   Each entry under `pipelines:`:
+#
+#       <pipeline-name>:
+#         description: "<short Chinese summary shown to the user>"
+#         upstream:           # optional — omit for downstream-only pipelines
+#           ...               # see UPSTREAM block below
+#         downstream:         # optional — omit for upstream-only pipelines
+#           ...               # see DOWNSTREAM block below
+#         timeout_minutes: <int>
+#
+# ─── UPSTREAM (FlowHub-only; agent NEVER runs upstream Docker locally) ───────
+#
+#       upstream:
+#         fkit_flow_keyword:    "<keyword passed to `fkit flow list`>"
+#         fkit_flow_version_id: "<flowVersionId>"   # optional; pin a version
+#
+#         # ─── BATCH (per-sample fan-out) ─────────────────────────────────────
+#         # When present, ONE call to `run.sh submit` fans the flow out across
+#         # N samples discovered in the FlowHub DATA_DIR (via `fkit ls`). Each
+#         # sample becomes its own FlowHub pipeline named
+#         # `openclaw-<job-id>-<sample-id>`, sharing files tagged below as
+#         # `per_sample: false`.
+#         #
+#         # Omit `batch:` entirely for single-job pipelines (default behavior).
+#         batch:
+#           mode: per_sample
+#           # Sample-detection tried in order; first mode yielding ≥1 sample wins.
+#           # Available modes (all operate on the FlowHub listing, not local FS):
+#           #   subdirectories      each top-level subdir of the FlowHub DATA_DIR
+#           #                       = 1 sample (sample_id = dir name); top-level
+#           #                       FILES are shared (ref DBs, metadata).
+#           #   paired_by_basename  top-level files grouped by `*_R1*` / `*_R2*`
+#           #                       (and `_1`/`_2`, `_forward`/`_reverse`, …);
+#           #                       sample_id = the common stem; non-matching
+#           #                       files at top level → shared.
+#           #   single_file         each top-level sequencing file = 1 sample
+#           #                       (sample_id = stem without extensions);
+#           #                       non-sequencing top-level files → shared.
+#           detect: [subdirectories, paired_by_basename, single_file]
+#
+#         # File → port binding. STRONGLY recommended when the flow has more
+#         # than one input port — without it, every port falls back to
+#         # heuristics and tends to receive the SAME file.
+#         #   glob        — fnmatch against basename, anchored
+#         #   required    — default true; failed submit when no file matches
+#         #   allow_reuse — default false; let one file feed multiple ports
+#         #   multi       — default false; bind ALL matches (else just first)
+#         #   task        — scope to a single taskName when port names repeat
+#         #   use_default — default false; true → SKIP Phases 1–2 for this
+#         #                 port and force the flow's bundled default
+#         #                 (defaultFiles / defaultDirs). Glob is ignored.
+#         #                 Use when the FlowHub DATA_DIR happens to contain
+#         #                 something that would otherwise match but you want
+#         #                 the flow's curated reference instead.
+#         #   default     — default true; false → SKIP Phase 3 fallback. If
+#         #                 Phases 1–2 don't bind it, the port stays unbound;
+#         #                 required ports then hard-fail at plan/submit time.
+#         #                 Use for production / regulated pipelines that must
+#         #                 NEVER silently accept a flow-provided default.
+#         #   per_sample  — batch mode only. Default true. When the file is
+#         #                 matched outside any sample's group (i.e. in
+#         #                 enumerate_samples.py's `shared` list), the same
+#         #                 FlowHub fileId is reused across every per-sample
+#         #                 spec (there is no upload — files live on FlowHub
+#         #                 already; "shared" simply means one fileId, many
+#         #                 specs). Setting per_sample:false on a routing
+#         #                 entry is the way to *document* that a reference
+#         #                 DB / metadata file is intentionally shared (the
+#         #                 actual sharing is decided by detection, not by
+#         #                 this flag).
+#         input_routing:
+#           - { port: read1,    glob: "*_R1*.f*q*" }                          # per-sample (batch default)
+#           - { port: read2,    glob: "*_R2*.f*q*" }                          # per-sample (batch default)
+#           - { port: contigs,  glob: "*.contigs.fa", task: prodigal, required: false }
+#           - { port: silva_db, use_default: true, task: classify_taxa }      # always FlowHub bundled
+#           - { port: ref_db,   glob: "human_ref*",  default: false, per_sample: false }   # shared upload, no fallback
+#
+#         # FlowHub /Output → /job/stage/<category>/ mapping (one glob each).
+#         output_to_stage:
+#           qc:         "*/fastp/*_fastp.json"
+#           taxonomy:   "*/metaphlan4/*.mp4"
+#           functional: "*/humann/*_pathabundance.tsv"
+#
+#         # Written into FlowHub spec.params unless overridden per-job by
+#         # /data/output/<id>/reproducibility/params_override.yaml.
+#         default_params:
+#           - { taskName: fastp,   paramKey: min_length, paramValue: "50"  }
+#           - { taskName: kraken2, paramKey: confidence, paramValue: "0.2" }
+#
+#   The agent talks to FlowHub via `skills/upstream-pipeline-fkit/scripts/run.sh`
+#   (plan / submit / poll / finalize). **`plan` is mandatory before `submit`** —
+#   it does a DRY RUN (`flow list` + `flow inspect` + `fkit ls $DATA_DIR` +
+#   `build_spec.py --dry-run`, no `pipeline create`) and prints the Port →
+#   input bindings table plus a Flow defaults table for the user to confirm.
+#   When `batch:` is set, `plan` previews ONE representative sample's bindings
+#   and a batch summary listing the N sample IDs that `submit` will fan out
+#   across; `submit` then creates N FlowHub pipelines named
+#   `openclaw-<job-id>-<sample-id>`; `poll` aggregates statuses (STATUS=2
+#   only when ALL samples reach SUCCESS); `finalize` downloads every
+#   `/output/openclaw-<job-id>-<sample-id>/` and merges per-sample
+#   materialized outputs into one `stage/manifest.json`.
+#   Only after explicit user confirmation does `submit` refresh the FlowHub
+#   listing for DATA_DIR (recorded in /data/output/<id>/.input_source as a FlowHub
+#   absolute path), resolve fileIds, and call `fkit pipeline create`. There
+#   is NO upload — input data already lives on FlowHub. On SUCCESS,
+#   `finalize` downloads the cloud /output dir, materializes files into
+#   `/data/output/<id>/stage/<category>/` per `output_to_stage`, and writes
+#   `stage/manifest.json`.
+#
+#   Non-sequencing files (e.g. metadata.tsv) sitting alongside the FASTQ in
+#   the FlowHub DATA_DIR are pulled into /data/output/<id>/stage/ by orchestrator.sh
+#   via `fkit download` so downstream skills can read them under /job/stage/.
+#
+# ─── DOWNSTREAM (local Docker, two-phase) ────────────────────────────────────
+#
+#       downstream:
+#         image: "openclaw/<name>:<tag>"
+#         skills: [ <skill-name>, ... ]         # CATALOG, not execution order
+#         default_params:
+#           threads: <int>
+#           memory:  "<n>g"
+#         runtime: { ... }                       # optional, see RUNTIME below
+#
+#   `skills:` is a CATALOG the Planner picks subsets from:
+#     • `prepare_downstream.sh` stages every `scripts/reference_<skill>.py`
+#       into `/pipeline/scripts/` (ro) inside the container.
+#     • The Planner picks the actual subset and runs
+#       `gateway/run_downstream.sh <job-id> --skills s1,s2,…`.
+#     • Passing `--skills` directly to `gateway.sh` auto-executes; without it,
+#       the container stays up for interactive customization (`attach.sh`).
+#
+# ─── RUNTIME (optional override on `downstream:`) ────────────────────────────
+#
+#       runtime:
+#         memory:   16g          # default 16g
+#         cpus:     8            # default 8
+#         network:  none         # default none; "bridge" only if egress is needed
+#         gpus:     all          # omit → no --gpus flag
+#         cap_drop: [ALL]        # default [ALL]
+#         cap_add:  []           # default []
+#         env:      { HF_HUB_OFFLINE: "1" }
+#         mounts:                # extra ro mounts (reference DBs, models, …)
+#           - "/data/models:/models:ro"
+#
+# =============================================================================
+
+pipelines:
+
+  # ─── End-to-end metagenomics ────────────────────────────────────────────────
+  # FlowHub upstream (FASTQ → MetaPhlAn4 profile) + local downstream analysis.
+  # The standard pipeline most users want.
+
+  metagenomics-full:
+    description: "全流程宏基因组分析: QC → 去宿主 → 分类组成 → 下游统计/可视化"
+    upstream:
+      fkit_flow_keyword: "Metagenome_reads"
+      batch:
+        mode: per_sample
+        detect: [subdirectories, paired_by_basename, single_file]   # tried in order
+      input_routing:
+        - { port: fastq_1,    task: SOAPnuke,        glob: "*_1.f*q*" }
+        - { port: fastq_2,    task: SOAPnuke,        glob: "*_2.f*q*" }
+        - { port: ref_genome, task: bowtie2_builddb, glob: ["*.fna", "*.fa", "*.fasta"] }   # flexible: any reference FASTA (no rename needed)
+      output_to_stage:
+        profile: "*/metaphlan4/out_dir/*.txt"
+      default_params:
+        - { taskName: SOAPnuke, paramKey: quality, paramValue: "0.2" }
+    downstream:
+      image: "openclaw/downstream:1.1.1"
+      skills:
+        # [统计与 EDA]
+        - statistical-analysis              # 检验选择/假设检查/效应量/贝叶斯/APA
+        - AI-exploratory-data-analysis      # 200+ 格式的格式感知 EDA
+        - enrichment-analysis               # HUMAnN pathabundance 通路富集
+        # [上游产物合并 — MetaPhlAn4 profile 在场时必须先跑]
+        - microbiome-profile-merge          # stage/profile/<sid>/*.txt → sample×clade 合并丰度表
+        # [微生物组下游 — 输入为合并丰度表（ASV/OTU 或上一步的 MetaPhlAn 合并表）]
+        - microbiome-diversity-analysis     # α/β 多样性、ordination、PERMANOVA
+        - microbiome-differential-abundance # ALDEx2 / ANCOM-BC2 / MaAsLin2
+        - metabolomics-annotation
+        - metabolomics-de
+        - metabolomics-normalization
+        - metabolomics-pathway-enrichment
+        - metabolomics-peak-detection
+        - metabolomics-quantification
+        - metabolomics-statistics
+        - metabolomics-xcms-preprocessing
+        # [辅助]
+        - hypothesis-generation             # 从观察生成可检验假设（基于预 staged 文献）
+        # [作图与报告]
+        - nature-style-figure-maker         # Nature 风格多面板出版图（Python 或 R）
+        - AI-report-generator               # CNS 排版的自包含 HTML 报告
+      default_params:
+        threads: 6
+        memory: "10g"
+    timeout_minutes: 240
+
+  # ─── Upstream-only ──────────────────────────────────────────────────────────
+  # Cloud FlowHub run with no local downstream. Useful for batch QC + profiling
+  # where the user will analyze stage/ outputs themselves.
+
+  upstream-only:
+    description: "仅上游分析: QC → 去宿主 → 分类组成（产物保留在 stage/ 供后续手工分析）"
+    upstream:
+      fkit_flow_keyword: "Metagenome_reads"
+      batch:
+        mode: per_sample
+        detect: [subdirectories, paired_by_basename, single_file]   # tried in order
+      input_routing:
+        - { port: fastq_1,    task: SOAPnuke,        glob: "*_1.f*q*" }
+        - { port: fastq_2,    task: SOAPnuke,        glob: "*_2.f*q*" }
+        - { port: ref_genome, task: bowtie2_builddb, glob: ["*.fna", "*.fa", "*.fasta"] }   # flexible: any reference FASTA (no rename needed)
+      output_to_stage:
+        profile: "*/metaphlan4/out_dir/*.txt"
+      default_params:
+        - { taskName: SOAPnuke, paramKey: quality, paramValue: "0.2" }
+    timeout_minutes: 480
+
+  # ─── General downstream analysis (no upstream) ─────────────────────────────
+  # Use when the user already has abundance / pathway / sequence tables staged
+  # at /data/output/<id>/stage/ and just wants stats / EDA / plots / report. Raw-FASTQ
+  # → ASV → taxonomy flows live in `amplicon-asv` below — do NOT duplicate
+  # those skills here.
+
+  downstream-only:
+    description: >-
+      仅下游分析（无上游）。输入：已暂存的丰度/通路/序列等数据 + 可选
+      metadata.tsv。覆盖 8 个跨领域 skill —— 统计/EDA、微生物组下游、假设
+      生成、出版图、CNS 报告。原始 FASTQ → ASV → taxonomy 工作流见
+      amplicon-asv pipeline。
+    downstream:
+      image: "openclaw/downstream:1.1.1"
+      skills:
+        # [统计与 EDA]
+        - statistical-analysis              # 检验选择/假设检查/效应量/贝叶斯/APA
+        - AI-exploratory-data-analysis      # 200+ 格式的格式感知 EDA
+        - enrichment-analysis               # HUMAnN pathabundance 通路富集
+        # [上游产物合并 — MetaPhlAn4 profile 在场时必须先跑]
+        - microbiome-profile-merge          # stage/profile/<sid>/*.txt → sample×clade 合并丰度表
+        # [微生物组下游 — 输入为合并丰度表（ASV/OTU 或上一步的 MetaPhlAn 合并表）]
+        - microbiome-diversity-analysis     # α/β 多样性、ordination、PERMANOVA
+        - microbiome-differential-abundance # ALDEx2 / ANCOM-BC2 / MaAsLin2
+        - metabolomics-annotation
+        - metabolomics-de
+        - metabolomics-normalization
+        - metabolomics-pathway-enrichment
+        - metabolomics-peak-detection
+        - metabolomics-quantification
+        - metabolomics-statistics
+        - metabolomics-xcms-preprocessing
+        # [辅助]
+        - hypothesis-generation             # 从观察生成可检验假设（基于预 staged 文献）
+        # [作图与报告]
+        - nature-style-figure-maker         # Nature 风格多面板出版图（Python 或 R）
+        - AI-report-generator               # CNS 排版的自包含 HTML 报告
+      default_params:
+        threads: 6
+        memory: "10g"
+    timeout_minutes: 480
+
+  # ─── ASV-based amplicon analysis ───────────────────────────────────────────
+  # Dedicated heavy image (openclaw/amplicon:1.0.0) bundling QIIME2 + DADA2 +
+  # PICRUSt2 + cutadapt + the Bioconductor amplicon stack. Isolated from the
+  # generic downstream image so those ~5 GB of tools do not bloat every job.
+  #
+  # End-to-end 16S/ITS: raw FASTQ → DADA2 ASVs → taxonomy → functional inference.
+  # Outputs (ASV table, taxonomy table, KO/pathway table) chain forward to
+  # `downstream-only` for stats / plots / report — do NOT duplicate downstream
+  # skills here.
+  #
+  # Input staging by skill (caller's responsibility):
+  #   microbiome-amplicon-processing   → paired-end FASTQ at stage/<skill>/
+  #   microbiome-taxonomy-assignment   → ASV table + repseqs.fasta
+  #   microbiome-functional-prediction → ASV table + repseqs.fasta
+  #   microbiome-qiime2-workflow       → FASTQ + QIIME2 manifest
+  #
+  # Reference DBs (SILVA / GTDB / UNITE / PICRUSt2 default ref) are NOT baked
+  # into the image. Pre-stage them on the host (defaults under /data/refdb/)
+  # and edit `runtime.mounts` below if your paths differ. Without these,
+  # taxonomy assignment and PICRUSt2 will fail.
+
+  amplicon-asv:
+    description: >-
+      基于 ASV 的扩增子分析（独立镜像 openclaw/amplicon:1.0.0，自带 QIIME2 +
+      DADA2 + PICRUSt2 + cutadapt）。原始 FASTQ → ASV → taxonomy → 功能预测。
+      产物可链给 downstream-only pipeline 做统计、作图与报告。
+    downstream:
+      image: "openclaw/amplicon:1.0.0"
+      skills:
+        - microbiome-amplicon-processing   # DADA2：FASTQ → ASV 表 + 代表序列
+        - microbiome-taxonomy-assignment   # SILVA/GTDB/UNITE/RDP 物种注释
+        - microbiome-functional-prediction # PICRUSt2 → KO/EC/pathway + NSTI 质控
+        - microbiome-qiime2-workflow       # QIIME2 端到端（含 provenance）
+      default_params:
+        threads: 8
+        memory: "32g"
+      runtime:
+        memory: 32g
+        cpus:   8
+        network: none           # taxonomy DBs MUST be pre-mounted (no internet)
+        cap_drop: [ALL]
+        mounts:
+          # Reference DBs live outside the job dir so they're shared across
+          # jobs. Edit the host paths below if your DBs are elsewhere.
+          - "/data/refdb/silva:/refdb/silva:ro"
+          - "/data/refdb/gtdb:/refdb/gtdb:ro"
+          - "/data/refdb/unite:/refdb/unite:ro"
+          - "/data/refdb/picrust2:/refdb/picrust2:ro"
+    timeout_minutes: 720
+
+  # ─── Deep-learning models (Ningkang Lab) ───────────────────────────────────
+  # Downstream-only — input data must be pre-staged at /data/output/<id>/stage/<tool>/
+  # (e.g. FASTA / abundance tables from a previous FlowHub run).
+
+  downstream-dl:
+    description: "DL 流程: MGM 微生物组基础模型 / APEX 抗菌肽 MIC 预测 / BGC-Prophet 基因簇 / ONN4ARG 抗性基因"
+    downstream:
+      image: "openclaw/downstream-dl:1.0.0"
+      skills:
+        - mgm                # 微生物组基础大模型（embedding + 下游任务）
+        - apex               # 抗菌肽 MIC 预测
+        - bgc-prophet        # 生物合成基因簇预测
+        - onn4arg            # 抗生素抗性基因检测
+        - AI-report-generator
+      default_params:
+        threads: 6
+        memory: "10g"
+    timeout_minutes: 480
+
+  # ─── Lightweight utilities ─────────────────────────────────────────────────
+  # openclaw/base:1.0.0 ships only pyyaml / jinja2 / markdown / pandas / numpy.
+  # Use for text/config processing or skill-adapter work — no analysis tools.
+
+  basic-usage:
+    description: "轻量级镜像：简单数据处理，或把外部 Skill（Anthropic / 第三方 SKILL.md）静态改写为符合 BioLine 契约的本地 Skill"
+    downstream:
+      image: "openclaw/base:1.0.0"
+      skills:
+        - skill-adapter      # 把外部 SKILL.md 翻译为 BioLine 风格
+    timeout_minutes: 30

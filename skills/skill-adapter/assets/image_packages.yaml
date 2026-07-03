@@ -1,0 +1,78 @@
+# Per-image Python package availability for skill-adapter dependency audit.
+#
+# Top-level keys are short identifiers used by reference_skill-adapter.py.
+# `tag` is the actual image:tag passed to docker run. `python` lists the
+# *importable top-level module names* (not pip names, e.g. `sklearn` not
+# `scikit-learn`, `yaml` not `pyyaml`, `Bio` not `biopython`, `PIL` not
+# `pillow`, `esm` not `fair-esm`).
+#
+# Keep aligned with the corresponding Dockerfile under images/<key>/. When
+# a new image is added (per gateway/prepare_downstream.sh runtime block),
+# add an entry here so the audit covers it.
+
+base:
+  tag: "openclaw/base:1.0.0"
+  python:
+    - yaml
+    - jinja2
+    - markdown
+    - pandas
+    - numpy
+
+downstream:
+  tag: "openclaw/downstream:1.1.1"
+  python:
+    - pandas
+    - numpy
+    - scipy
+    - sklearn
+    - statsmodels
+    - xgboost
+    - lightgbm
+    - shap
+    - lifelines
+    - plotly
+    - seaborn
+    - matplotlib
+    - kaleido
+    - jinja2
+    - markdown
+    - openpyxl
+    - pyarrow
+    - rpy2
+    - yaml
+    - joblib
+    - pypdf
+    - pdfplumber
+    - reportlab
+  notes: "Also has R + BiocManager + vegan/ggplot2/phyloseq/DESeq2/MaAsLin2."
+
+downstream-dl:
+  tag: "openclaw/downstream-dl:1.0.0"
+  python:
+    - pandas
+    - numpy
+    - scipy
+    - sklearn
+    - Bio
+    - tqdm
+    - yaml
+    - jinja2
+    - plotly
+    - matplotlib
+    - seaborn
+    - PIL
+    - kaleido
+    - torch
+    - pytorch_lightning
+    - transformers
+    - accelerate
+    - living_tree
+    - treelib
+    - tables
+    - microformer_mgm
+    - esm
+    - lmdb
+    - bgc_prophet
+    - h5py
+  notes: "Also clones APEX repo and downloads BGC-Prophet weights at build time."

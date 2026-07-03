@@ -1,0 +1,105 @@
+{# Shotgun metagenomics — QC + taxonomy + function + downstream stats/prediction. #}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{% block content %}
+
+<section class="section" id="overview">
+  <h2>1. Overview</h2>
+  <p class="section-lead">
+    Shotgun metagenomic analysis from raw reads through taxonomic profiling,
+    functional pathway abundance, and downstream group-level statistics.
+  </p>
+  {{ ui.kpi_grid(kpis) }}
+  {% if overview_callout %}{{ ui.callout(overview_callout.title, overview_callout.body, overview_callout.kind) }}{% endif %}
+</section>
+
+<section class="section" id="qc">
+  <h2>2. Read quality &amp; sample summary</h2>
+  <p class="section-lead">
+    Per-sample read counts, quality filtering retention and adapter content.
+    Samples failing the configured retention threshold are flagged.
+  </p>
+  {% if qc.table %}{{ ui.table(qc.table.rows, qc.table.cols,
+        caption='Per-sample QC metrics from <code>fastp</code>. Retention &lt; 70% is flagged.') }}{% else %}{{ ui.not_run('fastp QC') }}{% endif %}
+  {% if qc.figure %}{{ ui.figure('Read retention by sample', qc.figure) }}{% endif %}
+</section>
+
+<section class="section" id="taxonomy">
+  <h2>3. Taxonomic composition</h2>
+  <p class="section-lead">
+    Species- or genus-level abundances aggregated from <code>kraken2</code>
+    classifications and re-estimated with <code>bracken</code>.
+  </p>
+  {% if taxonomy.kpis %}{{ ui.kpi_grid(taxonomy.kpis) }}{% endif %}
+  <div class="figure-grid">
+    {% if taxonomy.stack %}{{ ui.figure('Stacked abundance — top taxa', taxonomy.stack,
+          caption='Relative abundance of the top taxa per sample, ordered by group.') }}{% endif %}
+    {% if taxonomy.alpha %}{{ ui.figure('α-diversity', taxonomy.alpha,
+          caption='Within-sample diversity (Shannon, Chao1). Boxes span IQR; whiskers 1.5×IQR.') }}{% endif %}
+    {% if taxonomy.beta %}{{ ui.figure('β-diversity (PCoA)', taxonomy.beta,
+          caption='Between-sample distance reduced via PCoA on Bray-Curtis. Color = group.') }}{% endif %}
+  </div>
+  {% if taxonomy.top_table %}{{ ui.table(taxonomy.top_table.rows, taxonomy.top_table.cols,
+        caption='Top 20 taxa by mean relative abundance.') }}{% endif %}
+</section>
+
+<section class="section" id="differential">
+  <h2>4. Differential abundance</h2>
+  <p class="section-lead">
+    Group-wise differential testing on CLR-transformed abundances. Multiple
+    testing controlled by Benjamini–Hochberg.
+  </p>
+  {% if differential.volcano %}{{ ui.figure('Volcano plot', differential.volcano,
+        caption='log<sub>2</sub> fold-change vs. −log<sub>10</sub>(q). Points highlighted at q &lt; 0.1.') }}{% else %}{{ ui.not_run('differential abundance') }}{% endif %}
+  {% if differential.table %}{{ ui.table(differential.table.rows, differential.table.cols,
+        caption='Top differentially abundant taxa (q &lt; 0.1).') }}{% endif %}
+  {% if differential.boxplots %}{{ ui.figure('Top hits — per-sample distributions', differential.boxplots) }}{% endif %}
+</section>
+
+{% if functional %}
+<section class="section" id="functional">
+  <h2>5. Functional pathways</h2>
+  <p class="section-lead">
+    Pathway abundance from <code>HUMAnN3</code> (MetaCyc).
+    Stratified and unstratified views analysed separately.
+  </p>
+  {% if functional.heatmap %}{{ ui.figure('Top differential pathways', functional.heatmap,
+        caption='CLR-normalised pathway abundance, hierarchically clustered.') }}{% endif %}
+  {% if functional.table %}{{ ui.table(functional.table.rows, functional.table.cols,
+        caption='Differential pathways with effect size and BH-adjusted q.') }}{% endif %}
+</section>
+{% endif %}
+
+{% if prediction %}
+<section class="section" id="prediction">
+  <h2>6. Predictive modelling</h2>
+  <p class="section-lead">
+    Machine-learning model trained on the abundance matrix to predict the
+    grouping variable. Metrics reported on held-out folds.
+  </p>
+  {{ ui.kpi_grid(prediction.kpis) }}
+  <div class="figure-grid">
+    {% if prediction.roc %}{{ ui.figure('ROC curves', prediction.roc) }}{% endif %}
+    {% if prediction.shap %}{{ ui.figure('Top SHAP features', prediction.shap,
+          caption='Per-feature mean(|SHAP|) — agreement with differential analysis is a positive signal.') }}{% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section class="section" id="reproducibility">
+  <h2>{{ '7' if prediction else ('6' if functional else '5') }}. Reproducibility</h2>
+  <p class="section-lead">
+    Every tool invocation, image digest and library version is recorded in the
+    job's <code>reproducibility/</code> folder. Re-running <code>run.sh</code>
+    reproduces this report verbatim given the same reference databases.
+  </p>
+  {% if reproducibility.tools_table %}{{ ui.table(reproducibility.tools_table.rows,
+        reproducibility.tools_table.cols,
+        caption='Tool versions and image digests for this run.') }}{% endif %}
+</section>
+
+{% endblock %}
+
+{% block methods %}{{ ui.methods(methods_table) }}{% endblock %}
+{% block references %}{{ ui.references(refs) }}{% endblock %}

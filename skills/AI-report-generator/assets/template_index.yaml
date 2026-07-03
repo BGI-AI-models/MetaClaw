@@ -1,0 +1,141 @@
+# Template registry for AI-report-generator.
+#
+# Each entry describes one Jinja template under assets/templates/ together with
+# the rules used to decide whether it fits the current job. The selector reads
+# this file at runtime; nothing is hard-coded in the Python.
+#
+# Selection cascade (see scripts/select_template.py):
+#   1. Explicit --template <name>            (highest priority, always wins)
+#   2. pipelines: matches stage/manifest pipeline name
+#   3. required_dirs: ALL listed dirs must exist under /job/analysis/
+#   4. any_dirs: at least ONE listed dir must exist
+#   5. keywords: regex matched against user prompt (case-insensitive)
+#   6. priority: tie-breaker (higher wins)
+#   7. "generic" is the unconditional fallback
+#
+# A template is *eligible* if every constraint that is declared evaluates true.
+# Among eligible templates the highest-priority one is chosen.
+
+templates:
+
+  - name: metagenomics_full
+    file: metagenomics_full.html.j2
+    title: Metagenomics — full analysis report
+    pipelines: [metagenomics, metagenomics_full, shotgun]
+    any_dirs: [taxonomy, differential, alpha_diversity, beta_diversity]
+    keywords:
+      - '\bmetagenom'
+      - '\bmicrobiom'
+      - '\btaxonom'
+      - '16s'
+      - 'shotgun'
+    priority: 90
+
+  - name: metagenomics_qc
+    file: metagenomics_qc.html.j2
+    title: Metagenomics — QC summary
+    pipelines: [metagenomics_qc, qc]
+    required_dirs: [qc]
+    keywords:
+      - '\bqc\b'
+      - 'quality control'
+      - 'fastqc'
+      - 'kneaddata'
+    priority: 70
+
+  - name: metagenomics_assembly
+    file: metagenomics_assembly.html.j2
+    title: Metagenomics — assembly & annotation
+    pipelines: [metagenomics_assembly, assembly]
+    any_dirs: [assembly, gene_prediction, functional_annotation]
+    keywords:
+      - 'assembl'
+      - 'megahit'
+      - 'spades'
+      - 'prodigal'
+      - 'eggnog'
+      - 'kegg'
+    priority: 80
+
+  - name: enrichment
+    file: enrichment.html.j2
+    title: Functional / pathway enrichment
+    pipelines: [enrichment, pathway, functional]
+    any_dirs: [enrichment, pathways, gsea]
+    keywords:
+      - 'enrich'
+      - 'pathway'
+      - 'gsea'
+      - 'kegg'
+      - '\bgo\b'
+    priority: 75
+
+  - name: classification
+    file: classification.html.j2
+    title: Classification model report
+    pipelines: [classification, ai_classification]
+    any_dirs: [classification, models, model_eval]
+    keywords:
+      - 'classif'
+      - 'roc'
+      - 'auc'
+      - 'logistic'
+      - 'random forest'
+      - 'xgboost'
+    priority: 85
+
+  - name: regression
+    file: regression.html.j2
+    title: Regression model report
+    pipelines: [regression, ai_regression]
+    any_dirs: [regression]
+    keywords:
+      - 'regress'
+      - '\brmse\b'
+      - 'predict.* (value|level|score)'
+      - 'continuous outcome'
+    priority: 85
+
+  - name: clustering
+    file: clustering.html.j2
+    title: Unsupervised clustering report
+    pipelines: [clustering, ai_clustering]
+    any_dirs: [clustering, embedding]
+    keywords:
+      - 'cluster'
+      - 'kmeans'
+      - 'k-means'
+      - 'dbscan'
+      - 'hierarchical'
+      - 'unsupervis'
+    priority: 80
+
+  - name: survival
+    file: survival.html.j2
+    title: Survival / Cox model report
+    pipelines: [survival, cox, ai_cox_model]
+    any_dirs: [survival, cox]
+    keywords:
+      - 'surviv'
+      - 'cox'
+      - 'kaplan'
+      - 'hazard'
+      - 'time.to.event'
+    priority: 85
+
+  - name: eda
+    file: eda.html.j2
+    title: Exploratory data analysis
+    pipelines: [eda, exploratory, ai_exploratory_data_analysis]
+    any_dirs: [eda, exploratory]
+    keywords:
+      - '\beda\b'
+      - 'exploratory'
+      - 'data profil'
+      - 'overview of (the )?data'
+    priority: 60
+
+  - name: generic
+    file: generic.html.j2
+    title: Generic report
+    priority: 0

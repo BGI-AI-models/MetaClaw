@@ -1,0 +1,13 @@
+# R packages required by microbiome-diversity-analysis (vs. openclaw/downstream:1.1.1).
+#
+# Audit 2026-06-09:
+#   • Removed: phyloseq, DECIPHER, phangorn — never called by the rendered
+#     R driver or by the rewritten companion `diversity_analysis.R`. vegan
+#     + base R cover every α/β / ordination / PERMANOVA operation.
+#   • Removed: ape, picante — only needed for tree-based metrics (UniFrac,
+#     Faith's PD). MetaPhlAn4 input has no tree, so the rendered driver
+#     halts early with a clear message if `tree.nwk` is supplied. To enable
+#     tree-based metrics, install ape + picante in a custom image and add
+#     them back here.
+vegan       # rrarefy / diversity / vegdist / adonis2 / betadisper / estimateR / specnumber
+ggplot2     # PCoA + α-diversity boxplot figures

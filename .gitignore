@@ -1,0 +1,8 @@
+.current_job_id
+params_override.yaml
+outputs/
+# Legacy: job dirs lived under jobs/<id>/ until the move to /data/output/<id>/.
+# Kept ignored so old checkouts don't accidentally commit leftover job state.
+jobs/
+.git/
+.openclaw/

@@ -1,0 +1,20 @@
+# R packages required by microbiome-differential-abundance
+# (matches openclaw/downstream:1.1.1).
+#
+# Audit 2026-06-09:
+#   • Kept: ALDEx2 (primary method — 2-group compositional Dirichlet-MC
+#     Wilcoxon), ggplot2 (volcano-style effect plot).
+#   • Removed: Maaslin2, phyloseq, DESeq2, ANCOMBC. None are called by
+#     either the Python wrapper's rendered R driver or the companion
+#     aldex2_analysis.R — grep confirms zero `library(<pkg>)` and zero
+#     `<pkg>::` references in the codebase.
+#       - Maaslin2 / phyloseq / DESeq2 never installed in 1.1.0 (silent
+#         Bioc failure).
+#       - ANCOMBC was attempted in three 1.1.1 build iterations; its dep
+#         chain (clarabel ⇒ rustup ≥ 1.70; gmp/fs/gsl ⇒ extra system libs;
+#         CVXR 1.0-13+ breaks `importFrom(CVXR, solve)` in ANCOMBC 2.10.1
+#         at lazy-load time) proved too brittle to maintain.
+#     See images/downstream/Dockerfile CHANGELOG for the recipe to
+#     re-enable any of these.
+ALDEx2
+ggplot2

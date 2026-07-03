@@ -1,0 +1,520 @@
+/* ============================================================
+   BioLine Report — CNS-grade design system
+   Tuned for Nature / Cell / Science publication conventions:
+     - Arial sans-serif (no decorative fonts)
+     - NPG (Nature Publishing Group) categorical palette
+     - Data-ink optimized figures: no gridlines, bold black spines
+     - Clean borders, minimal shadows, print-faithful layout
+   Inlined into every rendered HTML report. Keep self-contained:
+   no external fonts, no asset URLs, no @import.
+   Container runs with --network none.
+   ============================================================ */
+
+:root {
+  /* ----- Color tokens (light theme, print friendly) ----- */
+  --bg:            #ffffff;
+  --surface:       #ffffff;
+  --surface-alt:   #f5f5f5;
+  --surface-tint:  #fafafa;
+  --border:        #d0d0d0;
+  --border-strong: #000000;
+  --rule:          #000000;
+  --text:          #000000;
+  --text-muted:    #4a4a4a;
+  --text-subtle:   #767676;
+
+  /* Accent — NPG classic blue (used sparingly, per Nature guidelines) */
+  --accent:        #3C5488;     /* NPG "dark blue" */
+  --accent-soft:   #e8eaf2;
+  --accent-deep:   #1f2c4d;
+
+  /* Semantic (muted, journal-safe — no neon) */
+  --success:       #00A087;     /* NPG green */
+  --success-soft:  #e0f3ee;
+  --warning:       #F39B7F;     /* NPG salmon */
+  --warning-soft:  #fdeee7;
+  --danger:        #E64B35;     /* NPG red */
+  --danger-soft:   #fbe3de;
+  --info:          #4DBBD5;     /* NPG cyan */
+  --info-soft:     #e3f3f7;
+
+  /* ----- NPG (Nature Publishing Group) categorical palette -----
+     Mirrors ggsci::pal_npg("nrc"). Use for series/groups in figures
+     and pills. Colorblind-checked under Deuteranopia/Protanopia.   */
+  --npg-1: #E64B35;   /* red       */
+  --npg-2: #4DBBD5;   /* cyan blue */
+  --npg-3: #00A087;   /* teal      */
+  --npg-4: #3C5488;   /* dark blue */
+  --npg-5: #F39B7F;   /* salmon    */
+  --npg-6: #8491B4;   /* gray blue */
+  --npg-7: #91D1C2;   /* mint      */
+  --npg-8: #DC0000;   /* bright red*/
+  --npg-9: #7E6148;   /* brown     */
+  --npg-10:#B09C85;   /* warm gray */
+
+  /* Legacy aliases — kept so existing partials/templates still work */
+  --cat-1: var(--npg-1); --cat-2: var(--npg-2); --cat-3: var(--npg-3);
+  --cat-4: var(--npg-4); --cat-5: var(--npg-5); --cat-6: var(--npg-6);
+  --cat-7: var(--npg-7); --cat-8: var(--npg-8);
+
+  /* Sequential palette for heatmaps — viridis-like but NPG-tinted */
+  --seq-1: #1f2c4d; --seq-2: #3C5488; --seq-3: #4DBBD5;
+  --seq-4: #91D1C2; --seq-5: #f5f5f5;
+
+  /* ----- Typography — strict Arial stack (CNS convention) ----- */
+  --font-sans:  Arial, "Helvetica Neue", Helvetica,
+                "PingFang SC", "Hiragino Sans GB",
+                "Microsoft YaHei", sans-serif;
+  --font-serif: var(--font-sans);     /* Nature uses sans throughout */
+  --font-mono:  "Courier New", Courier, "Liberation Mono",
+                Menlo, Consolas, monospace;
+  --font-numeric: var(--font-sans);
+
+  /* Type scale — Nature article body is ~9–10pt; we use 16px base
+     for HTML readability but tighten section heads.                */
+  --fs-xs:   0.78rem;   /* 12.5px — captions, footnotes */
+  --fs-sm:   0.875rem;  /* 14px   — table cells         */
+  --fs-base: 1rem;      /* 16px   — body                */
+  --fs-md:   1.0625rem; /* 17px   — figure titles       */
+  --fs-lg:   1.25rem;   /* 20px   — h3                  */
+  --fs-xl:   1.5rem;    /* 24px   — h2                  */
+  --fs-2xl:  1.875rem;  /* 30px   — h1                  */
+  --fs-3xl:  2.25rem;   /* 36px   — report title        */
+
+  /* Spacing scale (8px grid) */
+  --sp-1: 0.25rem; --sp-2: 0.5rem; --sp-3: 0.75rem;
+  --sp-4: 1rem;    --sp-5: 1.5rem; --sp-6: 2rem;
+  --sp-7: 3rem;    --sp-8: 4rem;   --sp-9: 6rem;
+
+  /* Radius — square-ish for journal feel (no rounded cards) */
+  --r-sm: 2px;  --r:    3px;  --r-lg: 4px;  --r-xl: 6px;
+
+  /* Shadows — REMOVED for CNS compliance.
+     Kept as no-op tokens so legacy refs do not break.            */
+  --shadow-1: none;
+  --shadow-2: none;
+  --shadow-3: none;
+
+  /* Layout */
+  --container-w: 1240px;
+  --content-w:   820px;   /* readable column for prose */
+  --toc-w:       240px;
+}
+
+/* ----------------------------------- reset / base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  font-feature-settings: "kern", "liga";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+img, svg, video { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+a:hover { border-bottom-color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--rule); margin: var(--sp-6) 0; }
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--text);
+  margin: 0 0 var(--sp-3);
+  line-height: 1.2;
+}
+h1 { font-size: var(--fs-2xl); }
+h2 { font-size: var(--fs-xl);
+     padding-bottom: var(--sp-2);
+     border-bottom: 1.5px solid var(--rule);
+     margin-top: var(--sp-7); }
+h3 { font-size: var(--fs-lg); margin-top: var(--sp-6); font-weight: 700; }
+h4 { font-size: var(--fs-md); color: var(--text); font-weight: 700; }
+p  { margin: 0 0 var(--sp-4); max-width: 78ch; }
+small { font-size: var(--fs-xs); color: var(--text-muted); }
+
+code, pre, .num { font-family: var(--font-mono); }
+code {
+  font-size: 0.9em;
+  padding: 0.08em 0.32em;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+pre {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  background: #fafafa;
+  color: #111111;
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-sm);
+  overflow-x: auto;
+  border: 1px solid var(--border);
+}
+pre code { background: transparent; border: 0; padding: 0; color: inherit; }
+
+/* ----------------------------------- layout ---------------- */
+.page {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: var(--container-w);
+  margin: 0 auto;
+  padding: var(--sp-7) var(--sp-6) var(--sp-9);
+  gap: var(--sp-7);
+}
+@media (min-width: 1080px) {
+  .page { grid-template-columns: var(--toc-w) minmax(0, 1fr); }
+  .toc { position: sticky; top: var(--sp-5); align-self: start;
+         max-height: calc(100vh - var(--sp-7)); overflow-y: auto; }
+}
+main.content { min-width: 0; }
+
+/* ----------------------------------- header --------------- */
+.report-header {
+  position: relative;
+  padding: var(--sp-5) 0 var(--sp-5);
+  border-bottom: 2px solid var(--rule);
+  margin-bottom: var(--sp-6);
+}
+.report-header::before {
+  content: ""; position: absolute; left: 0; top: 0;
+  width: 64px; height: 3px;
+  background: var(--accent);
+}
+.report-eyebrow {
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent);
+  margin-bottom: var(--sp-3);
+}
+.report-title  { font-size: var(--fs-3xl); font-weight: 700;
+                 letter-spacing: -0.005em; margin: 0 0 var(--sp-3); }
+.report-subtitle {
+  color: var(--text-muted); font-size: var(--fs-md);
+  font-weight: 400; max-width: 78ch; margin: 0 0 var(--sp-5);
+}
+.report-meta {
+  display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-6);
+  font-size: var(--fs-sm); color: var(--text-muted);
+}
+.report-meta dt { font-weight: 700; color: var(--text); display: inline; }
+.report-meta dd { display: inline; margin: 0 var(--sp-4) 0 var(--sp-2); }
+
+/* ----------------------------------- TOC ------------------ */
+.toc {
+  font-size: var(--fs-sm);
+  border-left: 1.5px solid var(--rule);
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-4);
+}
+.toc h6 {
+  font-size: var(--fs-xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-muted);
+  font-weight: 700; margin: 0 0 var(--sp-3);
+}
+.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: tocsec; }
+.toc li { counter-increment: tocsec; margin: var(--sp-1) 0; }
+.toc a {
+  display: block; padding: var(--sp-1) 0;
+  color: var(--text-muted); border-bottom: 0;
+}
+.toc a::before { content: counter(tocsec) "."; margin-right: var(--sp-2);
+                 color: var(--text-subtle); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--accent); border-bottom: 0; }
+
+/* ----------------------------------- section ------------- */
+.section { margin: var(--sp-7) 0; scroll-margin-top: var(--sp-5); }
+.section-lead {
+  color: var(--text-muted); max-width: 78ch;
+  font-size: var(--fs-base); margin-bottom: var(--sp-5);
+}
+
+/* ----------------------------------- KPI cards -----------
+   Replace shadow-card style with austere bordered boxes.    */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-4); margin: var(--sp-5) 0;
+}
+.kpi {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-sm); padding: var(--sp-4) var(--sp-5);
+  box-shadow: none;
+}
+.kpi__label {
+  font-size: var(--fs-xs); text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted);
+  font-weight: 700;
+}
+.kpi__value {
+  font-family: var(--font-numeric);
+  font-size: 1.875rem; font-weight: 700;
+  line-height: 1.1; margin: var(--sp-2) 0 var(--sp-1);
+  font-variant-numeric: tabular-nums; color: var(--text);
+}
+.kpi__hint { font-size: var(--fs-xs); color: var(--text-muted); }
+.kpi--accent  { border-top: 4px solid var(--accent); }
+.kpi--success { border-top: 4px solid var(--success); }
+.kpi--warning { border-top: 4px solid var(--warning); }
+.kpi--danger  { border-top: 4px solid var(--danger);  }
+.kpi--info    { border-top: 4px solid var(--info);    }
+
+/* ----------------------------------- figure cards --------
+   Journal-style: thin border, no shadow, caption beneath.   */
+.figure {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: var(--sp-5);
+  box-shadow: none; margin: var(--sp-5) 0;
+}
+.figure__title {
+  font-size: var(--fs-md); font-weight: 700; margin: 0 0 var(--sp-2);
+}
+.figure__title .figlabel {
+  display: inline-block; font-weight: 700; color: var(--text);
+  margin-right: var(--sp-2);
+}
+.figure__caption {
+  font-size: var(--fs-sm); color: var(--text-muted);
+  margin-top: var(--sp-3); line-height: 1.5;
+  border-top: 1px solid var(--border); padding-top: var(--sp-3);
+}
+.figure__caption b { color: var(--text); font-weight: 700; }
+.figure__caption .figlabel { color: var(--text); font-weight: 700; }
+.figure__body { margin: var(--sp-3) 0; min-height: 1px; }
+.figure__body img { width: 100%; height: auto; border-radius: 0; }
+.figure__body .plotly-graph-div { width: 100% !important; }
+
+.figure-grid {
+  display: grid; gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+}
+
+/* Graphical abstract — full-width, prominent */
+.graphical-abstract {
+  border: 1.5px solid var(--rule); padding: var(--sp-5);
+  margin: var(--sp-6) 0; background: var(--surface);
+}
+.graphical-abstract .figure__title {
+  font-size: var(--fs-lg); border-bottom: 1px solid var(--border);
+  padding-bottom: var(--sp-2); margin-bottom: var(--sp-4);
+}
+
+/* ----------------------------------- tables --------------
+   Nature-style "booktabs": thick top/bottom rules, single
+   midrule under the header, no vertical lines, no zebra.    */
+.table-wrap {
+  overflow-x: auto; margin: var(--sp-4) 0;
+  border-radius: 0; border: 0; box-shadow: none;
+  background: var(--surface);
+}
+table.data {
+  width: 100%; border-collapse: collapse;
+  font-size: var(--fs-sm); font-variant-numeric: tabular-nums;
+  border-top: 2px solid var(--rule);
+  border-bottom: 2px solid var(--rule);
+}
+table.data th, table.data td {
+  padding: var(--sp-2) var(--sp-3); text-align: left;
+  border-bottom: 0;
+}
+table.data thead th {
+  background: transparent; font-weight: 700;
+  color: var(--text); white-space: nowrap;
+  font-size: var(--fs-xs); text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1.5px solid var(--rule);
+}
+table.data tbody tr:hover { background: var(--surface-tint); }
+table.data tbody tr:last-child td { border-bottom: 0; }
+table.data td.num, table.data th.num { text-align: right;
+                                       font-family: var(--font-numeric);
+                                       font-variant-numeric: tabular-nums; }
+table.data td.sig    { font-weight: 700; }
+table.data td.ns     { color: var(--text-subtle); }
+table.data caption {
+  caption-side: top; padding: 0 0 var(--sp-3) 0;
+  text-align: left; font-size: var(--fs-sm); color: var(--text);
+  font-weight: 400;
+}
+table.data caption .tabnum {
+  font-weight: 700; margin-right: var(--sp-2);
+}
+
+/* Baseline characteristics (Table 1) — extra spacing, group columns */
+table.data.baseline thead tr:first-child th { font-size: var(--fs-xs); }
+table.data.baseline th[scope="rowgroup"] {
+  font-weight: 700; padding-top: var(--sp-3);
+}
+table.data.baseline td.var-name { font-weight: 400; padding-left: var(--sp-4); }
+table.data.baseline tr.subhead td {
+  font-weight: 700; padding-top: var(--sp-3);
+  border-top: 1px solid var(--border); padding-left: 0;
+}
+
+/* ----------------------------------- statistical notation -- */
+.stat            { font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+.stat-p          { font-style: italic; }    /* italic p */
+.stat-n          { font-style: italic; }    /* italic n */
+.stat-mean       { font-variant-numeric: tabular-nums; }
+.stat-ci         { color: var(--text-muted); font-size: 0.92em; }
+.sig-1::after    { content: "*";   margin-left: 1px; color: var(--text); }
+.sig-2::after    { content: "**";  margin-left: 1px; color: var(--text); }
+.sig-3::after    { content: "***"; margin-left: 1px; color: var(--text); }
+.sig-legend {
+  font-size: var(--fs-xs); color: var(--text-muted);
+  margin-top: var(--sp-2);
+}
+
+/* ----------------------------------- callouts -----------
+   Restrained borders, no soft shadows.                     */
+.callout {
+  border-left: 3px solid var(--info);
+  background: var(--surface-alt);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 0;
+  margin: var(--sp-5) 0;
+  font-size: var(--fs-sm);
+}
+.callout--success { border-color: var(--success); }
+.callout--warning { border-color: var(--warning); }
+.callout--danger  { border-color: var(--danger);  }
+.callout__title {
+  font-weight: 700; margin-bottom: var(--sp-1);
+  display: flex; align-items: center; gap: var(--sp-2);
+}
+
+/* ----------------------------------- pills / tags ------- */
+.pill {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  padding: 0.1em 0.55em; font-size: var(--fs-xs);
+  font-weight: 700; line-height: 1.5;
+  border-radius: 2px; background: var(--surface-alt);
+  border: 1px solid var(--border); color: var(--text);
+  letter-spacing: 0.02em; text-transform: none;
+}
+.pill--accent  { background: var(--accent-soft);  color: var(--accent-deep); border-color: var(--accent); }
+.pill--success { background: var(--success-soft); color: var(--success);     border-color: var(--success); }
+.pill--warning { background: var(--warning-soft); color: var(--text);        border-color: var(--warning); }
+.pill--danger  { background: var(--danger-soft);  color: var(--danger);      border-color: var(--danger); }
+.pill--info    { background: var(--info-soft);    color: var(--accent-deep); border-color: var(--info); }
+
+/* ----------------------------------- methods / refs ----- */
+.methods {
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: var(--sp-5) var(--sp-6);
+  font-size: var(--fs-sm); color: var(--text);
+}
+.methods h3 { color: var(--text); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: var(--sp-2); }
+.methods dl { display: grid; grid-template-columns: 12rem 1fr;
+              gap: var(--sp-2) var(--sp-4); margin: 0; }
+.methods dt { font-weight: 700; color: var(--text); }
+.methods dd { margin: 0; color: var(--text-muted); }
+
+.references {
+  font-size: var(--fs-sm); color: var(--text);
+}
+.references ol { padding-left: var(--sp-5); }
+.references li { margin-bottom: var(--sp-2); }
+.references li::marker { color: var(--text-subtle); }
+
+/* ----------------------------------- code appendix -------
+   Collapsible R / Python code blocks for figure regeneration. */
+.code-appendix { margin: var(--sp-6) 0; }
+.code-appendix details {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  margin: var(--sp-3) 0;
+  background: var(--surface);
+}
+.code-appendix details[open] { border-color: var(--rule); }
+.code-appendix summary {
+  cursor: pointer; padding: var(--sp-3) var(--sp-4);
+  font-weight: 700; font-size: var(--fs-sm);
+  background: var(--surface-alt);
+  border-bottom: 1px solid transparent;
+  list-style: none; user-select: none;
+}
+.code-appendix details[open] summary { border-bottom-color: var(--border); }
+.code-appendix summary::-webkit-details-marker { display: none; }
+.code-appendix summary::before {
+  content: "▶"; display: inline-block;
+  margin-right: var(--sp-2); font-size: 0.7em;
+  transition: transform 0.15s;
+}
+.code-appendix details[open] summary::before { transform: rotate(90deg); }
+.code-appendix .lang-tag {
+  display: inline-block; margin-left: var(--sp-2);
+  font-size: var(--fs-xs); font-weight: 700;
+  padding: 0.05em 0.5em; border-radius: 2px;
+  background: var(--accent-soft); color: var(--accent-deep);
+  letter-spacing: 0.02em;
+}
+.code-appendix .code-meta {
+  padding: var(--sp-2) var(--sp-4); font-size: var(--fs-xs);
+  color: var(--text-muted); border-bottom: 1px solid var(--border);
+  background: var(--surface-tint);
+}
+.code-appendix pre {
+  margin: 0; border-radius: 0; border: 0;
+  background: #ffffff; max-height: 600px;
+}
+
+/* ----------------------------------- footer ------------- */
+.report-footer {
+  margin-top: var(--sp-8); padding-top: var(--sp-4);
+  border-top: 1px solid var(--rule);
+  font-size: var(--fs-xs); color: var(--text-muted);
+  display: flex; flex-wrap: wrap; gap: var(--sp-4) var(--sp-6);
+  justify-content: space-between;
+}
+.report-footer code { background: transparent; border: 0; padding: 0; }
+
+/* ----------------------------------- utilities ---------- */
+.muted   { color: var(--text-muted); }
+.subtle  { color: var(--text-subtle); }
+.mono    { font-family: var(--font-mono); }
+.center  { text-align: center; }
+.right   { text-align: right; }
+.flex    { display: flex; }
+.grid    { display: grid; }
+.gap-2   { gap: var(--sp-2); }
+.gap-4   { gap: var(--sp-4); }
+.mt-0 { margin-top: 0; }
+.mt-4 { margin-top: var(--sp-4); }
+.mt-6 { margin-top: var(--sp-6); }
+.mb-0 { margin-bottom: 0; }
+.mb-4 { margin-bottom: var(--sp-4); }
+.mb-6 { margin-bottom: var(--sp-6); }
+.no-data { color: var(--text-subtle); font-style: italic; }
+
+/* Plotly axis cleanup — applied via JS injection in base.html.j2,
+   but we also harden CSS so no stray gridlines leak from defaults.  */
+.figure__body .plotly .gridlayer path { stroke: transparent !important; }
+.figure__body .plotly .xaxislayer-above path.xtick,
+.figure__body .plotly .yaxislayer-above path.ytick { stroke: #000 !important; stroke-width: 1px !important; }
+
+/* ----------------------------------- print ------------- */
+@media print {
+  :root { --bg: #ffffff; }
+  body { font-size: 9.5pt; }
+  .page { display: block; max-width: none; padding: 0; }
+  .toc, .no-print { display: none !important; }
+  .figure, .kpi, .methods, .table-wrap {
+    box-shadow: none !important; break-inside: avoid;
+  }
+  .section { break-before: auto; break-inside: avoid; }
+  h1, h2, h3 { break-after: avoid; }
+  pre { font-size: 8pt; white-space: pre-wrap; }
+  a { color: inherit; text-decoration: none; border-bottom: 0; }
+  a[href^="http"]::after { content: " (" attr(href) ")";
+                            font-size: 8pt; color: var(--text-muted); }
+  /* Force every code-appendix block open in print so nothing is hidden. */
+  details { display: block; }
+  details summary { display: none; }
+}
+
+/* No dark mode override — Nature reports are always light-themed.
+   Browser auto-dark mode is respected only at the OS chrome level. */

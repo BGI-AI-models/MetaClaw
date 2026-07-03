@@ -1,0 +1,4 @@
+# microbiome-profile-merge — Python dependencies
+# Already present in openclaw/downstream:1.1.0; listed for provenance.
+pandas>=1.3
+numpy>=1.21

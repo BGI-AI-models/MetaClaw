@@ -1,0 +1,58 @@
+{# Exploratory data analysis report. #}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{% block content %}
+<section class="section" id="overview">
+  <h2>1. Overview</h2>
+  <p class="section-lead">
+    Format-aware exploratory data analysis. The goal is to surface structure,
+    quality issues and downstream-analysis recommendations — not to draw
+    statistical conclusions.
+  </p>
+  {{ ui.kpi_grid(kpis) }}
+  {% if exploratory_warning %}{{ ui.callout('Exploratory analysis', exploratory_warning, 'info') }}{% endif %}
+</section>
+
+<section class="section" id="inventory">
+  <h2>2. File inventory</h2>
+  {% if inventory.table %}{{ ui.table(inventory.table.rows, inventory.table.cols,
+        caption='Detected files, formats and sizes.') }}{% endif %}
+</section>
+
+<section class="section" id="schema">
+  <h2>3. Schema &amp; types</h2>
+  {% if schema.table %}{{ ui.table(schema.table.rows, schema.table.cols,
+        caption='Column dtypes, missingness and cardinality.') }}{% endif %}
+</section>
+
+<section class="section" id="distributions">
+  <h2>4. Distributions</h2>
+  {% if distributions.numeric %}{{ ui.figure('Numeric feature distributions', distributions.numeric,
+        caption='Box and violin plots highlight skew and outliers.') }}{% endif %}
+  {% if distributions.categorical %}{{ ui.figure('Categorical feature counts', distributions.categorical) }}{% endif %}
+</section>
+
+<section class="section" id="correlations">
+  <h2>5. Relationships</h2>
+  {% if correlations.heatmap %}{{ ui.figure('Pairwise correlation heatmap', correlations.heatmap,
+        caption='Spearman correlations between numeric features.') }}{% endif %}
+</section>
+
+<section class="section" id="quality">
+  <h2>6. Data-quality findings</h2>
+  {% if quality.findings %}
+    <ul>{% for f in quality.findings %}<li>{{ f | safe }}</li>{% endfor %}</ul>
+  {% else %}<p class="muted">No anomalies surfaced.</p>{% endif %}
+</section>
+
+<section class="section" id="recommendations">
+  <h2>7. Recommended next steps</h2>
+  {% if recommendations %}
+    <ol>{% for r in recommendations %}<li>{{ r | safe }}</li>{% endfor %}</ol>
+  {% else %}<p class="muted">None.</p>{% endif %}
+</section>
+{% endblock %}
+
+{% block methods %}{{ ui.methods(methods_table) }}{% endblock %}
+{% block references %}{{ ui.references(refs) }}{% endblock %}

@@ -1,0 +1,23 @@
+{
+  "skill_name": "classification-pipeline",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a customer churn dataset in CSV format (about 5000 rows) with features like account age, monthly charges, contract type, and a binary target column 'churned'. I want to build classifiers and compare Random Forest vs Logistic Regression. Can you guide me through the full pipeline: preprocess the data, train both models with hyperparameter tuning, evaluate them with confusion matrices and ROC curves, and give me a comprehensive report?",
+      "expected_output": "Complete classification results directory with: preprocessed data files, trained models (.joblib), confusion matrices and ROC curves (PNG images), metrics comparison table (CSV), feature importance analysis, and comprehensive README report summarizing the best model and recommendations.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I'm working on fraud detection. I have a dataset with 50+ features and a highly imbalanced target (fraud yes/no, 95% no fraud). I want to try Random Forest, SVM, and Gradient Boosting. What's the best approach? Can you preprocess it (handle the imbalance if needed), train all three models, and show me which one performs best on fraud detection (using ROC-AUC as the main metric)?",
+      "expected_output": "Organized results directory containing preprocessed fraud dataset, trained models (RF, SVM, GB), confusion matrices for each model, ROC curves showing AUC scores, feature importance rankings, and a summary report highlighting which model is best for fraud detection with recommendations.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I need to build a disease diagnosis classifier from structured records. The data has categorical features (test results, patient history), numeric features (biomarkers, measurements), and some missing values. I've got about 2000 samples with a 3-class target (disease A, B, or healthy). Walk me through the entire pipeline: encoding categorical features, handling missing values, splitting the data, training models, and evaluating them. I want to understand which model works best and why.",
+      "expected_output": "Full classification results directory with: clean preprocessed medical data, multiple trained classifiers, confusion matrices (for 3-class problem), classification reports with precision/recall per class, feature importance visualization, and a detailed markdown report explaining the preprocessing steps, model performance, and actionable insights.",
+      "files": []
+    }
+  ]
+}

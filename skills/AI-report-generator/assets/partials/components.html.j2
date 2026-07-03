@@ -1,0 +1,408 @@
+{# ============================================================
+   components.html.j2 — reusable Jinja macros
+   Import in any template:
+     {% import "partials/components.html.j2" as ui %}
+   CNS-grade conventions:
+     - "Figure N." / "Table N." labels are baked into figures/tables
+     - Booktabs-style data tables (no zebra, no vertical lines)
+     - Baseline characteristics table (Table 1) for biomedical reports
+     - Statistical notation helpers (p-value, CI, mean±SD, n=…)
+     - Collapsible R/Python code appendix for vector PDF regeneration
+   ============================================================ #}
+
+{# ============================================================
+   IMRAD prose macros — added per reference_skills/scientific-writing
+   conventions. Use full paragraphs, never bullets, in main body
+   sections. Cite every figure and table in the text (use fig_ref /
+   tab_ref helpers below for cross-references).
+   ============================================================ #}
+
+{# --------- Abstract -----------------------------------------
+   Accepts EITHER:
+     • a dict  {background, methods, results, conclusion, keywords}
+       → rendered as a structured abstract (Nature / JAMA style)
+     • a string → rendered as a single unstructured paragraph
+   Always rendered as flowing prose. Keep ≤ 250 words per journal
+   norms; the report-generator does NOT enforce length, the LLM does. #}
+{% macro abstract(data) -%}
+{% if data %}
+<section class="section abstract" id="abstract">
+  <h2>Abstract</h2>
+  {% if data is mapping %}
+    {% for key in ['background','objective','methods','results','conclusion'] %}
+      {% if data.get(key) %}
+        <p class="abstract__para">
+          <span class="abstract__label">{{ key|capitalize }}.</span>
+          {{ data[key] | safe }}
+        </p>
+      {% endif %}
+    {% endfor %}
+    {% if data.get('keywords') %}
+      <p class="abstract__keywords"><em>Keywords:</em>
+        {{ data['keywords'] if data['keywords'] is string
+           else data['keywords']|join('; ') }}.
+      </p>
+    {% endif %}
+  {% else %}
+    <p class="abstract__para">{{ data | safe }}</p>
+  {% endif %}
+</section>
+{% endif %}
+{%- endmacro %}
+
+{# --------- Generic prose section ----------------------------
+   paragraphs = [ "string", ... ]   or
+                [ { heading: "...", body: "..." }, ... ]
+   No bullets in the rendered output. Every paragraph wraps cleanly
+   for journal readability. The `num` argument adds a section number
+   like "1." — pass None to suppress numbering. #}
+{% macro prose_section(num, title, paragraphs, anchor=None) -%}
+{% set _a = anchor or title|lower|replace(' ', '-') %}
+<section class="section prose" id="{{ _a }}">
+  <h2>{% if num %}{{ num }}. {% endif %}{{ title }}</h2>
+  {% for p in paragraphs %}
+    {% if p is string %}
+      <p>{{ p | safe }}</p>
+    {% else %}
+      {% if p.get('heading') %}<h3>{{ p.heading }}</h3>{% endif %}
+      <p>{{ p.body | safe }}</p>
+    {% endif %}
+  {% endfor %}
+</section>
+{%- endmacro %}
+
+{# --------- Figure with descriptive paragraphs ---------------
+   Wraps the bare `figure` macro with `before` / `after` prose so the
+   reader gets context BEFORE seeing the figure and interpretation
+   AFTER (Nature style: "Figure 2 shows … We observed …"). Both
+   description slots are optional; if omitted, behaves identically
+   to `figure()`. #}
+{% macro figure_with_description(fig_num, title, body_html, caption,
+                                  before=None, after=None, anchor=None) -%}
+  {% if before %}<p class="figure-lead">{{ before | safe }}</p>{% endif %}
+  {{ figure(title, body_html, caption=caption, anchor=anchor, fig_num=fig_num) }}
+  {% if after %}<p class="figure-follow">{{ after | safe }}</p>{% endif %}
+{%- endmacro %}
+
+{# Image-only variant of the same. #}
+{% macro figure_image_with_description(fig_num, title, src, caption,
+                                        before=None, after=None,
+                                        anchor=None, alt='') -%}
+{{ figure_with_description(fig_num, title,
+   '<img src="' ~ src ~ '" alt="' ~ alt ~ '" loading="lazy" />',
+   caption, before=before, after=after, anchor=anchor) }}
+{%- endmacro %}
+
+{# --------- Table with descriptive paragraphs ---------------- #}
+{% macro table_with_description(tab_num, rows, cols, caption,
+                                 before=None, after=None, max_rows=20) -%}
+  {% if before %}<p class="table-lead">{{ before | safe }}</p>{% endif %}
+  {{ table(rows, cols, caption=caption, tab_num=tab_num, max_rows=max_rows) }}
+  {% if after %}<p class="table-follow">{{ after | safe }}</p>{% endif %}
+{%- endmacro %}
+
+{# --------- In-text cross-references -------------------------
+   Use inside prose like: "Levels diverged in week 4 ({{ ui.fig_ref(2,'A') }})."
+   Renders as a clickable "Fig. 2A" linking to the figure DOM id. #}
+{% macro fig_ref(num, suffix='') -%}
+<a class="xref xref--fig" href="#fig-{{ num }}">Fig. {{ num }}{{ suffix }}</a>
+{%- endmacro %}
+
+{% macro tab_ref(num) -%}
+<a class="xref xref--tab" href="#tab-{{ num }}">Table {{ num }}</a>
+{%- endmacro %}
+
+{# ============================================================
+   Visual / structural components (existing — predate IMRAD additions)
+   ============================================================ #}
+
+{# --------- KPI card ----------------------------------------- #}
+{% macro kpi(label, value, hint=None, kind=None) -%}
+<div class="kpi{% if kind %} kpi--{{ kind }}{% endif %}">
+  <div class="kpi__label">{{ label }}</div>
+  <div class="kpi__value">{{ value }}</div>
+  {% if hint %}<div class="kpi__hint">{{ hint }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro kpi_grid(items) -%}
+<div class="kpis">
+  {% for it in items %}
+    {{ kpi(it.label, it.value, it.get('hint'), it.get('kind')) }}
+  {% endfor %}
+</div>
+{%- endmacro %}
+
+{# --------- Figure cards -------------------------------------
+   Numbered figure label is auto-prefixed when fig_num is given,
+   matching journal convention ("Figure 2. <title>"). The same
+   number is also reused as the figure DOM id when no anchor is
+   passed, so cross-references like #fig-2 work.                  #}
+{% macro figure(title, body_html, caption=None, anchor=None, fig_num=None) -%}
+{% set _anchor = anchor or (fig_num and ('fig-' ~ fig_num)) %}
+<figure class="figure"{% if _anchor %} id="{{ _anchor }}"{% endif %}>
+  {% if title or fig_num %}
+  <div class="figure__title">
+    {% if fig_num %}<span class="figlabel">Figure {{ fig_num }}.</span>{% endif %}
+    {{ title or '' }}
+  </div>
+  {% endif %}
+  <div class="figure__body">{{ body_html | safe }}</div>
+  {% if caption %}
+  <figcaption class="figure__caption">
+    {% if fig_num %}<span class="figlabel">Figure {{ fig_num }}.</span> {% endif %}
+    {{ caption | safe }}
+  </figcaption>
+  {% endif %}
+</figure>
+{%- endmacro %}
+
+{% macro figure_image(title, src, caption=None, anchor=None, alt='', fig_num=None) -%}
+{{ figure(title,
+   '<img src="' ~ src ~ '" alt="' ~ alt ~ '" loading="lazy" />',
+   caption, anchor, fig_num) }}
+{%- endmacro %}
+
+{# Graphical abstract — wide hero figure shown above the body. #}
+{% macro graphical_abstract(src, caption=None, alt='Graphical abstract') -%}
+<figure class="figure graphical-abstract" id="graphical-abstract">
+  <div class="figure__title"><span class="figlabel">Graphical abstract.</span></div>
+  <div class="figure__body"><img src="{{ src }}" alt="{{ alt }}" loading="lazy"/></div>
+  {% if caption %}<figcaption class="figure__caption">{{ caption | safe }}</figcaption>{% endif %}
+</figure>
+{%- endmacro %}
+
+{# --------- Table -------------------------------------------
+   Booktabs-style. cols[i] = {key, label, kind ('text'|'num'|'sig')}.
+   tab_num adds a "Table N." prefix to the caption.                #}
+{% macro table(rows, cols, caption=None, max_rows=20, tab_num=None, classes='') -%}
+<div class="table-wrap">
+  <table class="data {{ classes }}">
+    {% if caption or tab_num %}
+    <caption>
+      {% if tab_num %}<span class="tabnum">Table {{ tab_num }}.</span>{% endif %}
+      {{ caption | safe if caption else '' }}
+    </caption>
+    {% endif %}
+    <thead>
+      <tr>
+        {% for c in cols -%}
+          <th{% if c.get('kind') == 'num' %} class="num"{% endif %}>{{ c.label }}</th>
+        {%- endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows[:max_rows] %}
+        <tr>
+          {% for c in cols -%}
+          {% set v = r.get(c.key, '') %}
+          {% set k = c.get('kind', 'text') %}
+          <td class="{{ k }}{% if c.get('sig_key') and r.get(c.sig_key) %} sig{% endif %}">{{ v }}</td>
+          {%- endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if rows|length > max_rows %}
+<div class="muted" style="font-size:var(--fs-xs); margin-top:var(--sp-2)">
+  Showing top {{ max_rows }} of {{ rows|length }} rows.
+</div>
+{% endif %}
+{%- endmacro %}
+
+{# --------- Baseline characteristics (Table 1) --------------
+   Standard biomedical "Baseline characteristics" table.
+   data = {
+     groups: [{label, n}],            # column groups, each with sample size
+     overall: {label, n}|None,        # optional overall column
+     rows: [
+        {variable, type ('cont'|'cat'|'subhead'),
+         values: {<group_label>: <formatted str>, 'overall': '...', 'p': '<.001'},
+         note: 'mean ± SD' | 'n (%)' | None}
+     ],
+     test_legend: 'Cont., t-test; Cat., χ²' (optional)
+   }
+   Renders Nature-style Table 1.                               #}
+{% macro baseline_table(data, caption=None, tab_num=1) -%}
+{% set groups = data.groups or [] %}
+{% set overall = data.overall %}
+<div class="table-wrap">
+  <table class="data baseline">
+    {% if caption or tab_num %}
+    <caption>
+      <span class="tabnum">Table {{ tab_num }}.</span>
+      {{ caption | safe if caption else 'Baseline characteristics of the study population.' }}
+    </caption>
+    {% endif %}
+    <thead>
+      <tr>
+        <th>Characteristic</th>
+        {% if overall %}<th class="num">{{ overall.label }}<br><span class="muted">(<span class="stat-n">n</span> = {{ overall.n }})</span></th>{% endif %}
+        {% for g in groups %}
+          <th class="num">{{ g.label }}<br><span class="muted">(<span class="stat-n">n</span> = {{ g.n }})</span></th>
+        {% endfor %}
+        <th class="num"><span class="stat-p">P</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in data.rows %}
+        {% if r.type == 'subhead' %}
+          <tr class="subhead"><td colspan="{{ 2 + (groups|length) + (1 if overall else 0) }}">{{ r.variable }}</td></tr>
+        {% else %}
+          <tr>
+            <td class="var-name">
+              {{ r.variable }}{% if r.note %} <span class="muted" style="font-size:var(--fs-xs)">— {{ r.note }}</span>{% endif %}
+            </td>
+            {% if overall %}<td class="num">{{ r.values.get('overall', '—') }}</td>{% endif %}
+            {% for g in groups %}
+              <td class="num">{{ r.values.get(g.label, '—') }}</td>
+            {% endfor %}
+            <td class="num{% if r.values.get('sig') %} sig{% endif %}">{{ r.values.get('p', '—') }}</td>
+          </tr>
+        {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if data.test_legend %}
+<div class="sig-legend">{{ data.test_legend | safe }}</div>
+{% endif %}
+{%- endmacro %}
+
+{# --------- Statistical notation helpers --------------------- #}
+{% macro pvalue(p) -%}
+{%- if p is none -%}—
+{%- elif p is string -%}<span class="stat stat-p">{{ p }}</span>
+{%- elif p < 0.001 -%}<span class="stat stat-p">&lt; 0.001</span>
+{%- else -%}<span class="stat stat-p">{{ '%.3f'|format(p) }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro mean_sd(mean, sd, dp=2) -%}
+<span class="stat stat-mean">{{ '%.{}f'.format(dp)|format(mean) }} ± {{ '%.{}f'.format(dp)|format(sd) }}</span>
+{%- endmacro %}
+
+{% macro median_iqr(median, q1, q3, dp=2) -%}
+<span class="stat stat-mean">{{ '%.{}f'.format(dp)|format(median) }} [{{ '%.{}f'.format(dp)|format(q1) }}, {{ '%.{}f'.format(dp)|format(q3) }}]</span>
+{%- endmacro %}
+
+{% macro ci(lo, hi, dp=2, level=95) -%}
+<span class="stat stat-ci">{{ level }}% CI [{{ '%.{}f'.format(dp)|format(lo) }}, {{ '%.{}f'.format(dp)|format(hi) }}]</span>
+{%- endmacro %}
+
+{% macro nfrac(k, n) -%}
+<span class="stat">{{ k }}/{{ n }} ({{ '%.1f'|format(100.0 * k / n if n else 0) }}%)</span>
+{%- endmacro %}
+
+{# --------- Callouts ---------------------------------------- #}
+{% macro callout(title, body, kind='info') -%}
+<div class="callout callout--{{ kind }}">
+  <div class="callout__title">{{ title }}</div>
+  <div>{{ body | safe }}</div>
+</div>
+{%- endmacro %}
+
+{# --------- Pills ------------------------------------------- #}
+{% macro pill(text, kind=None) -%}
+<span class="pill{% if kind %} pill--{{ kind }}{% endif %}">{{ text }}</span>
+{%- endmacro %}
+
+{# --------- "Section not run" placeholder ------------------- #}
+{% macro not_run(name) -%}
+<p class="no-data">Section <b>{{ name }}</b> was not part of this run.</p>
+{%- endmacro %}
+
+{# --------- Methods block ----------------------------------- #}
+{% macro methods(items) -%}
+<aside class="methods" id="methods">
+  <h3>Methods</h3>
+  {% if items is mapping %}
+  <dl>
+    {% for k, v in items.items() %}
+      <dt>{{ k }}</dt><dd>{{ v | safe }}</dd>
+    {% endfor %}
+  </dl>
+  {% else %}
+  <dl>
+    {% for it in items %}
+      <dt>{{ it.step }}</dt>
+      <dd>
+        {% if it.status %}<span class="pill pill--{{ 'success' if it.status in ('ok','success','done') else ('warning' if it.status in ('partial','warning') else 'info') }}">{{ it.status }}</span> {% endif %}
+        {{ (it.notes or '') | safe }}
+      </dd>
+    {% endfor %}
+  </dl>
+  {% endif %}
+</aside>
+{%- endmacro %}
+
+{# --------- References list -------------------------------- #}
+{% macro references(refs) -%}
+{% if refs %}
+<section class="references" id="references">
+  <h2>References</h2>
+  <ol>
+    {% for r in refs %}
+      <li>
+        {% if r is string %}{{ r | safe }}
+        {% else %}{{ r.citation | safe }}{% if r.doi %} <a href="https://doi.org/{{ r.doi }}">doi:{{ r.doi }}</a>{% endif %}
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+{%- endmacro %}
+
+{# --------- Code appendix ----------------------------------
+   "终极发文保障" — vector PDFs are produced locally with the
+   user's Excel/CSV plus the same R or Python code shown here.
+   Each entry: {title, lang ('r'|'python'), filename, code,
+   description, depends (optional list of CRAN/PyPI packages)}. #}
+{% macro code_appendix(blocks, intro=None) -%}
+{% if blocks %}
+<section class="section code-appendix" id="code-appendix">
+  <h2>{{ section_num_code or '' }}{% if section_num_code %}. {% endif %}Reproducibility — Source code for vector figures</h2>
+  <p class="section-lead">
+    {% if intro %}{{ intro | safe }}{% else %}
+    The figures rendered above use Plotly for interactive HTML preview.
+    For publication-grade vector PDFs (Nature/Cell/Science requirement),
+    run the corresponding R or Python snippet below against the original
+    Excel/CSV inputs. Output dimensions and NPG palette are pre-configured
+    so the result drops directly into a manuscript Figure panel.
+    {% endif %}
+  </p>
+  {% for b in blocks %}
+  <details{% if b.get('open') %} open{% endif %}>
+    <summary>
+      {{ b.title }}
+      <span class="lang-tag">{{ (b.lang or 'r') | upper }}</span>
+    </summary>
+    <div class="code-meta">
+      {% if b.filename %}<code>{{ b.filename }}</code>{% endif %}
+      {% if b.depends %} · depends: {% for d in b.depends %}<code>{{ d }}</code>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+      {% if b.description %} · {{ b.description }}{% endif %}
+    </div>
+    <pre><code class="lang-{{ b.lang or 'r' }}">{{ b.code }}</code></pre>
+  </details>
+  {% endfor %}
+</section>
+{% endif %}
+{%- endmacro %}
+
+{# --------- Provenance footer ------------------------------- #}
+{% macro provenance(meta) -%}
+<footer class="report-footer">
+  <div>
+    Job <code>{{ meta.job_id }}</code> &middot;
+    Pipeline <code>{{ meta.pipeline or '—' }}</code> &middot;
+    Generated {{ meta.generated_at }}
+  </div>
+  <div>
+    BioLine v{{ meta.bioline_version or '3' }} &middot;
+    Template <code>{{ meta.template }}</code> &middot;
+    Style <code>NPG / CNS</code>
+  </div>
+</footer>
+{%- endmacro %}

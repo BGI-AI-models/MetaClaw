@@ -1,0 +1,36 @@
+preprocessing:
+  imputation_method: mice
+  scaling: true
+  test_split_ratio: 0.2
+  random_state: 42
+
+training:
+  models: [ridge, lasso, rf, gb, svr]
+  cv: 5
+  n_jobs: -1
+
+  param_grids:
+    ridge:
+      alpha: [0.01, 0.1, 1.0, 10.0, 100.0]
+    lasso:
+      alpha: [0.001, 0.01, 0.1, 1.0]
+    rf:
+      n_estimators: [100, 200]
+      max_depth: [5, 10, 20]
+    gb:
+      n_estimators: [100, 200]
+      learning_rate: [0.01, 0.1]
+    svr:
+      C: [1.0, 10.0]
+      kernel: [linear, rbf]
+
+evaluation:
+  scoring: [r2, rmse, mae]
+  best_metric: r2
+  plots: true
+  report: true
+
+output:
+  directory: null
+  save_models: true
+  save_preprocessed: true

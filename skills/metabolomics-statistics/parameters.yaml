@@ -1,0 +1,19 @@
+domain: metabolomics
+emoji: 📈
+trigger_keywords:
+- metabolomics statistics
+- ttest
+- Wilcoxon
+- ANOVA
+- Kruskal-Wallis
+allowed_extra_flags:
+- --alpha
+- --group1-prefix
+- --group2-prefix
+- --method
+legacy_aliases:
+- met-stat
+saves_h5ad: false
+script: scripts/reference_metabolomics-statistics.py
+param_hints: {}
+requires_preprocessed: false

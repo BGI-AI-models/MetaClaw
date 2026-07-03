@@ -1,0 +1,60 @@
+{# Unsupervised clustering report. #}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{% block content %}
+<section class="section" id="overview">
+  <h2>1. Overview</h2>
+  <p class="section-lead">
+    Unsupervised clustering — preprocessing, algorithm choice, internal-validity
+    metrics and per-cluster profiling.
+  </p>
+  {{ ui.kpi_grid(kpis) }}
+  {% if note %}{{ ui.callout('Algorithm choice', note, 'info') }}{% endif %}
+</section>
+
+<section class="section" id="data">
+  <h2>2. Data &amp; preprocessing</h2>
+  {% if data.summary_table %}{{ ui.table(data.summary_table.rows, data.summary_table.cols) }}{% endif %}
+  {% if data.scree %}{{ ui.figure('PCA scree plot', data.scree,
+        caption='Variance explained by each principal component, motivating the dimensionality reduction.') }}{% endif %}
+</section>
+
+<section class="section" id="cluster-quality">
+  <h2>3. Cluster quality</h2>
+  <div class="figure-grid">
+    {% if quality.k_sweep %}{{ ui.figure('Silhouette &amp; inertia vs. k', quality.k_sweep,
+          caption='Selection of the operating k balances within-cluster compactness against separation.') }}{% endif %}
+    {% if quality.silhouette %}{{ ui.figure('Per-sample silhouette', quality.silhouette) }}{% endif %}
+  </div>
+  {% if quality.metrics_table %}{{ ui.table(quality.metrics_table.rows, quality.metrics_table.cols,
+        caption='Silhouette, Davies-Bouldin and Calinski-Harabasz indices.') }}{% endif %}
+</section>
+
+<section class="section" id="embedding">
+  <h2>4. Embedding &amp; cluster assignments</h2>
+  {% if embedding.figure %}{{ ui.figure('2D embedding', embedding.figure,
+        caption='UMAP / PCA projection coloured by cluster.') }}{% endif %}
+  {% if embedding.size_table %}{{ ui.table(embedding.size_table.rows, embedding.size_table.cols,
+        caption='Cluster sizes and noise points (DBSCAN).') }}{% endif %}
+</section>
+
+<section class="section" id="profiles">
+  <h2>5. Cluster profiles</h2>
+  <p class="section-lead">
+    Mean feature values per cluster, normalised across clusters. Use this to
+    name and interpret each cluster.
+  </p>
+  {% if profiles.heatmap %}{{ ui.figure('Cluster profile heatmap', profiles.heatmap) }}{% endif %}
+  {% if profiles.table %}{{ ui.table(profiles.table.rows, profiles.table.cols,
+        caption='Most discriminative features per cluster.') }}{% endif %}
+</section>
+
+<section class="section" id="reproducibility">
+  <h2>6. Reproducibility</h2>
+  {% if reproducibility.tools_table %}{{ ui.table(reproducibility.tools_table.rows, reproducibility.tools_table.cols) }}{% endif %}
+</section>
+{% endblock %}
+
+{% block methods %}{{ ui.methods(methods_table) }}{% endblock %}
+{% block references %}{{ ui.references(refs) }}{% endblock %}

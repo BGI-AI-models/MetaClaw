@@ -1,0 +1,18 @@
+domain: metabolomics
+emoji: 🏷️
+trigger_keywords:
+- metabolite annotation
+- m/z matching
+- ppm tolerance
+- adduct matching
+- HMDB
+allowed_extra_flags:
+- --adducts
+- --database
+- --ppm
+legacy_aliases:
+- met-annotate
+saves_h5ad: false
+script: scripts/reference_metabolomics-annotation.py
+param_hints: {}
+requires_preprocessed: false

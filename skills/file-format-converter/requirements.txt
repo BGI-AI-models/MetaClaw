@@ -1,0 +1,5 @@
+# file-format-converter 依赖
+# 纯 Python 依赖，外部工具（seqkit / samtools / pigz）由 Docker 镜像提供
+
+pandas>=2.1.0       # 宽格式 ↔ 长格式转换
+biom-format>=2.1.16 # BIOM ↔ TSV/JSON 转换

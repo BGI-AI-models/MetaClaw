@@ -1,0 +1,173 @@
+{# ============================================================
+   base.html.j2 — shared skeleton (CNS-grade)
+   Concrete templates extend this and override {% block content %}.
+   - Inlines theme.css and plotly.js exactly once.
+   - Registers a global Plotly NPG template so every plotly.js
+     figure embedded as `to_html(full_html=False, include_plotlyjs=False)`
+     adopts Arial typography, NPG colours, no gridlines, and bold
+     black spines without per-figure boilerplate.
+   ============================================================ #}
+<!doctype html>
+<html lang="{{ lang or 'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="BioLine report-generator (NPG/CNS)">
+  <title>{{ title }}</title>
+  <style>{{ theme_css | safe }}</style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+{# -------- Plotly bundle is injected ONCE here so individual
+   figures can use <div class="plotly-graph-div"> without each
+   shipping their own copy. -------- #}
+{% if plotlyjs %}{{ plotlyjs | safe }}{% endif %}
+
+{# -------- Global Plotly NPG / CNS template (data-ink optimised).
+   Applied via Plotly.setPlotConfig + Plotly.register so that any
+   embedded figure picks up Arial, NPG colours, no gridlines,
+   and bold black axes. Falls through silently if plotly.js is
+   unavailable.                                              -------- #}
+<script>
+(function () {
+  if (typeof window === "undefined" || typeof window.Plotly === "undefined") return;
+  var NPG = ["#E64B35","#4DBBD5","#00A087","#3C5488","#F39B7F",
+             "#8491B4","#91D1C2","#DC0000","#7E6148","#B09C85"];
+  var SEQ = [[0,"#1f2c4d"],[0.25,"#3C5488"],[0.5,"#4DBBD5"],[0.75,"#91D1C2"],[1,"#f5f5f5"]];
+  var axis = {
+    showgrid: false,
+    zeroline: false,
+    showline: true,
+    linecolor: "#000000",
+    linewidth: 1.5,
+    mirror: false,
+    ticks: "outside",
+    tickcolor: "#000000",
+    tickwidth: 1,
+    tickfont: { family: "Arial, Helvetica, sans-serif", size: 12, color: "#000" },
+    title: { font: { family: "Arial, Helvetica, sans-serif", size: 13, color: "#000" } },
+    automargin: true
+  };
+  var tpl = {
+    layout: {
+      colorway: NPG,
+      font: { family: "Arial, Helvetica, sans-serif", size: 12, color: "#000" },
+      paper_bgcolor: "#ffffff",
+      plot_bgcolor:  "#ffffff",
+      margin: { l: 60, r: 20, t: 40, b: 50 },
+      title: { font: { family: "Arial, Helvetica, sans-serif", size: 14, color: "#000" }, x: 0.02, xanchor: "left" },
+      legend: {
+        bgcolor: "rgba(255,255,255,0)", bordercolor: "#d0d0d0", borderwidth: 0,
+        font: { family: "Arial, Helvetica, sans-serif", size: 11, color: "#000" }
+      },
+      xaxis: axis, yaxis: axis,
+      colorscale: { sequential: SEQ, sequentialminus: SEQ },
+      hoverlabel: { font: { family: "Arial, Helvetica, sans-serif", size: 12 }, bgcolor: "#fff", bordercolor: "#000" }
+    }
+  };
+  if (window.Plotly.register && window.Plotly.templates) {
+    try { window.Plotly.templates.npg_cns = tpl; window.Plotly.templates.default = "npg_cns"; } catch (e) {}
+  }
+  /* Re-style any figures that rendered before the template was registered. */
+  function restyleAll() {
+    var nodes = document.querySelectorAll(".plotly-graph-div");
+    nodes.forEach(function (n) {
+      try { window.Plotly.relayout(n, { template: tpl, "xaxis.showgrid": false, "yaxis.showgrid": false }); }
+      catch (e) {}
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", restyleAll);
+  } else {
+    restyleAll();
+  }
+})();
+</script>
+
+<div class="page">
+  {% block toc %}
+  <nav class="toc no-print" aria-label="Table of contents">
+    <h6>On this page</h6>
+    <ol>
+      {% for s in sections %}
+        <li><a href="#{{ s.id }}">{{ s.label }}</a></li>
+      {% endfor %}
+    </ol>
+  </nav>
+  {% endblock %}
+
+  <main class="content">
+    <header class="report-header">
+      {% block eyebrow %}<div class="report-eyebrow">{{ eyebrow or 'Analysis report' }}</div>{% endblock %}
+      <h1 class="report-title">{{ title }}</h1>
+      {% if subtitle %}<p class="report-subtitle">{{ subtitle }}</p>{% endif %}
+      <dl class="report-meta">
+        <dt>Job</dt><dd><code>{{ meta.job_id }}</code></dd>
+        {% if meta.pipeline %}<dt>Pipeline</dt><dd><code>{{ meta.pipeline }}</code></dd>{% endif %}
+        {% if meta.samples is not none %}<dt>Samples</dt><dd>{{ meta.samples }}</dd>{% endif %}
+        {% if meta.groups %}<dt>Groups</dt><dd>{{ meta.groups | join(' / ') }}</dd>{% endif %}
+        <dt>Generated</dt><dd>{{ meta.generated_at }}</dd>
+      </dl>
+    </header>
+
+    {% block graphical_abstract %}
+      {% if graphical_abstract_src %}
+        {% import "partials/components.html.j2" as ui %}
+        {{ ui.graphical_abstract(graphical_abstract_src, caption=graphical_abstract_caption) }}
+      {% endif %}
+    {% endblock %}
+
+    {# ── IMRAD prose scaffolding (abstract → introduction → … → conclusion).
+         Each block is silently empty when its context key is absent, so
+         legacy templates that only render the `content` block remain
+         unaffected. Templates that opt into prose just populate the
+         corresponding context keys (abstract, introduction, discussion,
+         conclusion). See SKILL.md §"IMRAD prose writing" for usage. ── #}
+    {% block abstract %}
+      {% if abstract %}
+        {% import "partials/components.html.j2" as ui %}
+        {{ ui.abstract(abstract) }}
+      {% endif %}
+    {% endblock %}
+
+    {% block introduction %}
+      {% if introduction %}
+        {% import "partials/components.html.j2" as ui %}
+        {{ ui.prose_section(1, 'Introduction', introduction, anchor='introduction') }}
+      {% endif %}
+    {% endblock %}
+
+    {# `content` typically holds Methods + Results (the parts that need
+       figures, tables, KPI grids — i.e. template-specific layout). #}
+    {% block content %}{% endblock %}
+
+    {% block discussion %}
+      {% if discussion %}
+        {% import "partials/components.html.j2" as ui %}
+        {{ ui.prose_section(discussion_section_num, 'Discussion', discussion, anchor='discussion') }}
+      {% endif %}
+    {% endblock %}
+
+    {% block conclusion %}
+      {% if conclusion %}
+        {% import "partials/components.html.j2" as ui %}
+        {% set _c = conclusion if conclusion is iterable and conclusion is not string else [conclusion] %}
+        {{ ui.prose_section(conclusion_section_num, 'Conclusion', _c, anchor='conclusion') }}
+      {% endif %}
+    {% endblock %}
+
+    {% block methods %}{% endblock %}
+    {% block references %}{% endblock %}
+    {% block code_appendix %}
+      {% if code_blocks %}
+        {% import "partials/components.html.j2" as ui_ca %}
+        {{ ui_ca.code_appendix(code_blocks, intro=code_intro) }}
+      {% endif %}
+    {% endblock %}
+
+    {% import "partials/components.html.j2" as ui %}
+    {{ ui.provenance(meta) }}
+  </main>
+</div>
+</body>
+</html>

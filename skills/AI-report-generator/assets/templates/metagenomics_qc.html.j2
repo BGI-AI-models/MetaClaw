@@ -1,0 +1,40 @@
+{# Quick taxonomic screen — QC + classification + visualisation only. #}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{% block content %}
+<section class="section" id="overview">
+  <h2>1. Overview</h2>
+  <p class="section-lead">
+    Rapid taxonomic screening report — read QC, taxonomic profiling and
+    descriptive composition only. No group-level statistics or modelling.
+  </p>
+  {{ ui.kpi_grid(kpis) }}
+</section>
+
+<section class="section" id="qc">
+  <h2>2. Read QC</h2>
+  {% if qc.table %}{{ ui.table(qc.table.rows, qc.table.cols,
+        caption='Per-sample retention from <code>fastp</code>.') }}{% else %}{{ ui.not_run('fastp QC') }}{% endif %}
+  {% if qc.figure %}{{ ui.figure('Reads retained per sample', qc.figure) }}{% endif %}
+</section>
+
+<section class="section" id="composition">
+  <h2>3. Composition</h2>
+  <div class="figure-grid">
+    {% if composition.stack %}{{ ui.figure('Stacked taxa', composition.stack) }}{% endif %}
+    {% if composition.alpha %}{{ ui.figure('α-diversity', composition.alpha) }}{% endif %}
+  </div>
+  {% if composition.table %}{{ ui.table(composition.table.rows, composition.table.cols,
+        caption='Top taxa by mean relative abundance.') }}{% endif %}
+</section>
+
+<section class="section" id="reproducibility">
+  <h2>4. Reproducibility</h2>
+  {% if reproducibility.tools_table %}{{ ui.table(reproducibility.tools_table.rows,
+        reproducibility.tools_table.cols) }}{% endif %}
+</section>
+{% endblock %}
+
+{% block methods %}{{ ui.methods(methods_table) }}{% endblock %}
+{% block references %}{{ ui.references(refs) }}{% endblock %}

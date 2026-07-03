@@ -1,0 +1,43 @@
+{# Pathway / functional enrichment report. #}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{% block content %}
+<section class="section" id="overview">
+  <h2>1. Overview</h2>
+  <p class="section-lead">
+    Functional / pathway enrichment summary — group-level differential
+    abundance, GSEA-style scoring and functional annotation.
+  </p>
+  {{ ui.kpi_grid(kpis) }}
+</section>
+
+<section class="section" id="pathways">
+  <h2>2. Differential pathways</h2>
+  {% if pathways.volcano %}{{ ui.figure('Pathway volcano', pathways.volcano,
+        caption='Pathway log<sub>2</sub>FC vs. −log<sub>10</sub>(q). Highlighted at q &lt; 0.05.') }}{% endif %}
+  {% if pathways.table %}{{ ui.table(pathways.table.rows, pathways.table.cols,
+        caption='Top enriched pathways with effect size and BH-adjusted q.') }}{% endif %}
+</section>
+
+<section class="section" id="gsea">
+  <h2>3. Pathway-set scoring (GSEA-style)</h2>
+  {% if gsea.bar %}{{ ui.figure('Top enriched pathway sets', gsea.bar,
+        caption='Normalised enrichment scores for the top sets, ranked by absolute NES.') }}{% endif %}
+  {% if gsea.table %}{{ ui.table(gsea.table.rows, gsea.table.cols) }}{% endif %}
+</section>
+
+<section class="section" id="heatmap">
+  <h2>4. Pathway abundance heatmap</h2>
+  {% if heatmap %}{{ ui.figure('Top differential pathways', heatmap,
+        caption='CLR-normalised pathway abundance, hierarchically clustered (Ward).') }}{% endif %}
+</section>
+
+<section class="section" id="reproducibility">
+  <h2>5. Reproducibility</h2>
+  {% if reproducibility.tools_table %}{{ ui.table(reproducibility.tools_table.rows, reproducibility.tools_table.cols) }}{% endif %}
+</section>
+{% endblock %}
+
+{% block methods %}{{ ui.methods(methods_table) }}{% endblock %}
+{% block references %}{{ ui.references(refs) }}{% endblock %}

@@ -1,0 +1,73 @@
+{# Cox proportional-hazards survival analysis report. #}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{% block content %}
+<section class="section" id="overview">
+  <h2>1. Overview</h2>
+  <p class="section-lead">
+    Time-to-event analysis with Cox proportional-hazards modelling and
+    risk-stratified Kaplan–Meier curves.
+  </p>
+  {{ ui.kpi_grid(kpis) }}
+  {% if low_event_warning %}{{ ui.callout('Event count', low_event_warning, 'warning') }}{% endif %}
+</section>
+
+<section class="section" id="cohort">
+  <h2>2. Cohort summary</h2>
+  {% if cohort.km_overall %}{{ ui.figure('Overall Kaplan–Meier', cohort.km_overall,
+        caption='Crude survival curve across the full cohort with 95% CI band.') }}{% endif %}
+  {% if cohort.table %}{{ ui.table(cohort.table.rows, cohort.table.cols,
+        caption='Cohort baseline characteristics by event status.') }}{% endif %}
+</section>
+
+<section class="section" id="univariate">
+  <h2>3. Univariate Cox</h2>
+  {% if univariate.forest %}{{ ui.figure('Univariate forest plot', univariate.forest,
+        caption='Hazard ratios with 95% CI for each candidate covariate.') }}{% endif %}
+  {% if univariate.table %}{{ ui.table(univariate.table.rows, univariate.table.cols,
+        caption='Per-covariate HR, 95% CI and p-value (with effect-size emphasis).') }}{% endif %}
+</section>
+
+<section class="section" id="multivariate">
+  <h2>4. Penalised multivariate model</h2>
+  <p class="section-lead">
+    LASSO-Cox with cross-validated penalty selection.
+  </p>
+  {% if multi.cv_curve %}{{ ui.figure('Cross-validated partial likelihood vs. λ', multi.cv_curve) }}{% endif %}
+  {% if multi.coefficients %}{{ ui.table(multi.coefficients.rows, multi.coefficients.cols,
+        caption='Selected variables and their LASSO-penalised coefficients (HR shown).') }}{% endif %}
+</section>
+
+<section class="section" id="risk-strat">
+  <h2>5. Risk stratification</h2>
+  {% if risk.km %}{{ ui.figure('Risk-stratified Kaplan–Meier', risk.km,
+        caption='Patients dichotomised by the median linear predictor; log-rank p shown.') }}{% endif %}
+  {% if risk.table %}{{ ui.table(risk.table.rows, risk.table.cols,
+        caption='Group counts, event counts and median survival.') }}{% endif %}
+</section>
+
+<section class="section" id="diagnostics">
+  <h2>6. Diagnostics</h2>
+  {% if diag.ph_table %}{{ ui.table(diag.ph_table.rows, diag.ph_table.cols,
+        caption='Schoenfeld residual test for proportional hazards.') }}{% endif %}
+  {% if diag.cindex %}{{ ui.kpi_grid(diag.cindex) }}{% endif %}
+</section>
+
+{% if predictions %}
+<section class="section" id="predictions">
+  <h2>7. Risk scores for new patients</h2>
+  {% if predictions.summary %}{{ ui.kpi_grid(predictions.summary) }}{% endif %}
+  {% if predictions.table %}{{ ui.table(predictions.table.rows, predictions.table.cols,
+        caption='Per-patient predicted risk score and assigned group.') }}{% endif %}
+</section>
+{% endif %}
+
+<section class="section" id="reproducibility">
+  <h2>{{ '8' if predictions else '7' }}. Reproducibility</h2>
+  {% if reproducibility.tools_table %}{{ ui.table(reproducibility.tools_table.rows, reproducibility.tools_table.cols) }}{% endif %}
+</section>
+{% endblock %}
+
+{% block methods %}{{ ui.methods(methods_table) }}{% endblock %}
+{% block references %}{{ ui.references(refs) }}{% endblock %}

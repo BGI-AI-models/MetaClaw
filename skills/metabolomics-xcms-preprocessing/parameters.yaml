@@ -1,0 +1,18 @@
+domain: metabolomics
+emoji: 🧪
+trigger_keywords:
+- xcms preprocessing
+- LC-MS
+- peak detection
+- raw files
+- peak table
+allowed_extra_flags:
+- --peakwidth-max
+- --peakwidth-min
+- --ppm
+legacy_aliases:
+- xcms-preprocess
+saves_h5ad: false
+script: scripts/reference_metabolomics-xcms-preprocessing.py
+param_hints: {}
+requires_preprocessed: false

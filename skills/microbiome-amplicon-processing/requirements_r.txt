@@ -1,0 +1,6 @@
+dada2
+Biostrings
+phyloseq
+DECIPHER
+phangorn
+picante

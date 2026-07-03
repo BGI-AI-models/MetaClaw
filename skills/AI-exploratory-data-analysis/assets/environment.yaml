@@ -1,0 +1,44 @@
+# ai-exploratory-data-analysis — Conda environment
+#
+# INSTALL:
+#   conda env create -f Skills/AI-exploratory-data-analysis/environment.yaml
+#   conda activate ai-eda
+#
+# USAGE:
+#   conda activate ai-eda
+#   python scripts/eda_analyzer.py <filepath> [output.md]
+
+name: ai-eda
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.11
+  - pandas>=2.0
+  - numpy>=1.24
+  - matplotlib>=3.7
+  - scipy>=1.11
+  - pillow>=10.0
+  - pip
+  - pip:
+    # General scientific
+    - h5py>=3.9
+    - pyarrow>=13.0       # parquet
+    - netCDF4>=1.6        # .nc files
+    - astropy>=5.3        # .fits files
+    # Bioinformatics
+    - biopython>=1.81
+    - pysam>=0.21
+    # Chemistry / molecular
+    - mdanalysis>=2.6
+    - cclib>=1.8
+    # Microscopy / imaging
+    - tifffile>=2023.7
+    - pydicom>=2.4
+    - aicsimageio>=4.11
+    # Spectroscopy / MS
+    - pymzml>=2.5
+    - pyteomics>=4.6
+    - nmrglue>=0.9

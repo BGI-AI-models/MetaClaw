@@ -1,0 +1,7 @@
+# Constructed from biom file
+#OTU ID	SampleA	SampleB	SampleC
+k__Bacteria;p__Firmicutes;g__Lactobacillus	1523	872	2104
+k__Bacteria;p__Bacteroidetes;g__Bacteroides	984	1341	756
+k__Bacteria;p__Proteobacteria;g__Escherichia	312	89	445
+k__Bacteria;p__Firmicutes;g__Bifidobacterium	678	1203	334
+k__Archaea;p__Euryarchaeota;g__Methanobrevibacter	45	12	78

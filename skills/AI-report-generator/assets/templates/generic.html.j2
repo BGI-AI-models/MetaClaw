@@ -1,0 +1,93 @@
+{# Generic fallback — IMRAD-structured prose report.
+   Inherits abstract / introduction / discussion / conclusion blocks
+   from base.html.j2; this template overrides `content` with Methods
+   + Results sections that mix narrative prose with figures and tables.
+
+   Context keys consumed by this template (all optional except `meta`):
+     • subtitle_lead          — one-paragraph synopsis above the KPI grid
+     • kpis                   — list of {label, value, hint?, kind?}
+     • methods_narrative      — list of paragraphs (Methods prose)
+     • methods_table          — list of {step, status, notes} (compact aside)
+     • results_intro          — paragraph leading into the first figure
+     • results_figures        — list of {fig_num, title, body, caption,
+                                          before?, after?, anchor?}
+     • results_tables         — list of {tab_num, rows, cols, caption,
+                                          before?, after?, max_rows?}
+     • extra_sections         — list of {id, title, lead?, kpis?, figures?,
+                                          table?, html?}  (legacy passthrough)
+     • discussion_section_num / conclusion_section_num — auto-set below
+#}
+{% extends "templates/base.html.j2" %}
+{% import "partials/components.html.j2" as ui %}
+
+{# Compute section numbers dynamically so prose sections stay in order
+   even if some are omitted. Introduction is always §1 when present. #}
+{% set _has_intro    = introduction is defined and introduction %}
+{% set _has_methods  = methods_narrative is defined and methods_narrative %}
+{% set _has_results  = (results_intro and results_intro) or
+                       (results_figures and results_figures|length) or
+                       (results_tables  and results_tables|length) %}
+{% set _next = 1 %}
+{% if _has_intro %}{% set _next = _next + 1 %}{% endif %}
+{% set methods_num = _next if _has_methods else None %}
+{% if _has_methods %}{% set _next = _next + 1 %}{% endif %}
+{% set results_num = _next if _has_results else None %}
+{% if _has_results %}{% set _next = _next + 1 %}{% endif %}
+{% set discussion_section_num = _next if (discussion is defined and discussion) else None %}
+{% if discussion_section_num %}{% set _next = _next + 1 %}{% endif %}
+{% set conclusion_section_num = _next if (conclusion is defined and conclusion) else None %}
+
+{# ── Methods + Results live inside `content`; abstract / intro /
+     discussion / conclusion are emitted by base.html.j2's blocks. ── #}
+{% block content %}
+
+{% if subtitle_lead or kpis %}
+<section class="section" id="overview">
+  {% if subtitle_lead %}<p class="section-lead">{{ subtitle_lead }}</p>{% endif %}
+  {% if kpis %}{{ ui.kpi_grid(kpis) }}{% endif %}
+</section>
+{% endif %}
+
+{% if _has_methods %}
+{{ ui.prose_section(methods_num, 'Methods', methods_narrative, anchor='methods-narrative') }}
+{% endif %}
+
+{% if _has_results %}
+<section class="section prose" id="results">
+  <h2>{{ results_num }}. Results</h2>
+  {% if results_intro %}<p>{{ results_intro | safe }}</p>{% endif %}
+
+  {% for f in (results_figures or []) %}
+    {{ ui.figure_with_description(
+        f.fig_num, f.title, f.body, f.caption,
+        before=f.get('before'), after=f.get('after'), anchor=f.get('anchor')) }}
+  {% endfor %}
+
+  {% for t in (results_tables or []) %}
+    {{ ui.table_with_description(
+        t.tab_num, t.rows, t.cols, t.caption,
+        before=t.get('before'), after=t.get('after'),
+        max_rows=t.get('max_rows', 20)) }}
+  {% endfor %}
+</section>
+{% endif %}
+
+{# ── Legacy passthrough — older customized copies that built
+     `extra_sections` keep working without rewrite. ── #}
+{% for sec in (extra_sections or []) %}
+<section class="section" id="{{ sec.id }}">
+  <h2>{{ sec.title }}</h2>
+  {% if sec.lead %}<p class="section-lead">{{ sec.lead }}</p>{% endif %}
+  {% if sec.kpis     %}{{ ui.kpi_grid(sec.kpis) }}{% endif %}
+  {% if sec.figures  %}<div class="figure-grid">
+    {% for f in sec.figures %}{{ ui.figure(f.title, f.body, f.get('caption')) }}{% endfor %}
+  </div>{% endif %}
+  {% if sec.table    %}{{ ui.table(sec.table.rows, sec.table.cols, sec.table.get('caption')) }}{% endif %}
+  {% if sec.html     %}{{ sec.html | safe }}{% endif %}
+</section>
+{% endfor %}
+
+{% endblock %}
+
+{% block methods %}{% if methods_table %}{{ ui.methods(methods_table) }}{% endif %}{% endblock %}
+{% block references %}{% if refs %}{{ ui.references(refs) }}{% endif %}{% endblock %}
