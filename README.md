@@ -36,9 +36,8 @@ We evaluated MetaClaw by reproducing four published shotgun-metagenomic studies 
 10. [Reproducibility](#reproducibility)
 11. [Security and isolation](#security-and-isolation)
 12. [Extending MetaClaw](#extending-metaclaw)
-13. [Documentation index](#documentation-index)
-14. [Citing MetaClaw](#citing-metaclaw)
-15. [License](#license)
+13. [Citing MetaClaw](#citing-metaclaw)
+14. [License](#license)
 
 ---
 
@@ -294,20 +293,8 @@ This bundle is designed to make the *procedure* — not just the output — insp
 
 - **Add a pipeline from an existing FlowHub flow or a new downstream skill combination:** edit `registry/pipelines.yaml` (this file is edited via pull request, never from a chat session — see `AGENTS.md` §W4).
 - **Add a new downstream skill:** follow the step-by-step checklist in [`contributor_guide.md`](contributor_guide.md), which covers naming conventions, the mandatory `SKILL.md` template, the reference-script contract, container mounts, and end-to-end validation.
-- **Adapt an external `SKILL.md` tool (e.g. from the Anthropic Skills ecosystem):** see the 8-step recipe in `contributor_guide.md` §10, or use the bundled `skill-adapter` skill.
+- **Adapt an external `SKILL.md` tool (e.g. from the Anthropic Skills ecosystem):** see the instruction for contributors, or use the bundled `skill-adapter` skill.
 - **Publish a new upstream flow:** this happens on the FlowHub side (web UI or `fkit createTool`/`fkit createNewVersion`), then registered in `registry/pipelines.yaml` — see `AGENTS.md` §W4.
-
-## Documentation index
-
-| Document | Purpose |
-|---|---|
-| [`architecture.md`](architecture.md) | Full architecture & implementation reference (design rationale, directory contracts, status codes, end-to-end walkthrough) |
-| [`user_guide.md`](user_guide.md) | End-user guide with worked examples for each pipeline family |
-| [`contributor_guide.md`](contributor_guide.md) | How to add or adapt a downstream skill |
-| [`AGENTS.md`](AGENTS.md) | Numbered agent workflows (W1-W6) governing every operation |
-| [`SOUL.md`](SOUL.md) | Agent persona, values, and hard boundaries |
-| [`TOOLS.md`](TOOLS.md) | Host commands and container capabilities available to the agent |
-| [`HEARTBEAT.md`](HEARTBEAT.md) | Periodic self-checks that drive long-running FlowHub jobs |
 
 ## Citing MetaClaw
 
