@@ -11,7 +11,7 @@ We evaluated MetaClaw by reproducing four published shotgun-metagenomic studies 
 > This repository accompanies the manuscript *"MetaClaw: an auditable AI agent for end-to-end, multi-directional shotgun metagenomic analysis"* (manuscript in preparation). Source code, the pipeline registry, skill definitions, and container build files are provided here; benchmark inputs referenced in the manuscript are listed under [`data/`](data/).
 
 <p align="center">
-  <img src="main_figure.png" alt="MetaClaw system architecture: OpenClaw gateway, FlowHub upstream preprocessing, local downstream analytical modules, and the reproducibility bundle" width="850">
+  <img src="main_figure_v2.png" alt="MetaClaw system architecture: OpenClaw gateway, FlowHub upstream preprocessing, local downstream analytical modules, and the reproducibility bundle" width="850">
 </p>
 
 <p align="center"><b>Figure 1. MetaClaw system overview.</b>
